@@ -1,6 +1,12 @@
-# Guideline on how to use Github
+# 20_Fall_CSC645_P2P
 
-Some simple guideline on this repository.
+This repository allow team collaboration on P2P decentralized network project for the class CSC645 Computer Network in Fall 2020
+
+## Guideline on how to use Github
+
+---
+
+### Some simple guideline on this repository.
 
 1. Make sure to update [.gitignore](./gitignore) to prevent commiting unnecessary files.
 
