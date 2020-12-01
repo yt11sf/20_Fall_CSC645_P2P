@@ -1,3 +1,12 @@
+# file:           message.py
+# Author:         YeeJian Tan
+# Date:           11/14/2020
+# Description:    This file contains the Message and Lab7UnitTests classes.
+# Purpose:        Lab 7 CSC645 Computer Networks SFSU
+# Imports needed: math, bitarray and unittest
+# Comments references: http://www.bittorrent.org/beps/bep_0003.html
+
+
 import math
 from bitarray import bitarray  # you must install this library
 import unittest
@@ -253,3 +262,65 @@ class Message:
         :return: VOID
         """
         self._bitfield['bitfield'][piece_index][block_index] = b'1'
+
+# This is a unit test class to test your code, please do not modify it.
+
+
+class Lab7UnitTests(unittest.TestCase):
+    """
+    Description: This class provides unit tests for lab 7 in CSC645 Computer Networks
+    Author: Jose Ortiz
+    Date: 04/24/2020
+    NOTE: This class needs the unittest import: "import unittest"
+    NOTE: The message class needs the import "from bitarray import bitarray"
+    USAGE:
+         message = Message() # the object created from the student class Message in lab 7
+         unit_test = Lab7UnitTests(message)
+         unit_test.start()
+    """
+
+    def setUp(self):
+        self.message = Message()
+        # this will create a bitfield of size 25. See Message class (init_bitfield())
+        self.message.init_bitfield(200)
+
+    def test_init_bitfield(self):
+        size_bitfield = len(self.message._bitfield['bitfield'])
+        self.assertEqual(size_bitfield, 25)
+
+    def test_is_block_missing(self):
+        piece_index = 20
+        block_index = 5
+        # block is set to 1 (not missing)
+        self.message._bitfield['bitfield'][piece_index][block_index] = True
+        # block is not missing returns False
+        self.assertFalse(self.message.is_block_missing(
+            piece_index, block_index))
+
+    def test_is_piece_missing(self):
+        piece_index = 19
+        # sets piece index 19 to not missing
+        self.message._bitfield['bitfield'][piece_index] = b'11111111'
+        # piece is not missing returns False
+        self.assertFalse(self.message.is_piece_missing(piece_index))
+
+    def test_next_block_missing(self):
+        piece_index = 20
+        # not missing
+        self.message._bitfield['bitfield'][piece_index][0] = True
+        # not missing
+        self.message._bitfield['bitfield'][piece_index][1] = True
+        next_missing_block_index = 2  # this will be the missing block
+        self.assertEqual(self.message.next_missing_block_index(
+            piece_index), next_missing_block_index)
+
+    def test_next_missing_piece(self):
+        piece_index = 0
+        self.message._bitfield['bitfield'][piece_index] = b'11111111'
+        next_missing_piece_index = 1
+        self.assertEqual(self.message.next_missing_piece_index(),
+                         next_missing_piece_index)
+
+
+if __name__ == '__main__':
+    unittest.main()
