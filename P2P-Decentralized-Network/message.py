@@ -1,5 +1,15 @@
+# file:           message.py
+# Author:         <your name here>
+# Date:           04/24/2020
+# Description:    This file contains the Message and Lab7UnitTests classes.
+# Purpose:        Lab 7 CSC645 Computer Networks SFSU
+# Imports needed: math, bitarray and unittest
+# Comments references: http://www.bittorrent.org/beps/bep_0003.html
+
+
+
 import math
-from bitarray import bitarray  # you must install this library
+from bitarray import bitarray # you must install this library
 import unittest
 
 
@@ -42,28 +52,24 @@ class Message:
         # Bits that are cleared indicated a missing piece, and set bits indicate a valid and available piece.
         # Spare bits at the end are set to zero.
         # [[0,0,0,0,0,0,0,0],[1,1,1,1,1,1,1,1],[1,1,1,1,1,1,1,1]]
-        self._bitfield = {'len': b'0013' +
-                          self.X_BITFIELD_LENGTH, 'id': 5, 'bitfield': []}
+        self._bitfield = {'len': b'0013' + self.X_BITFIELD_LENGTH, 'id': 5, 'bitfield': []}
         # The request message is fixed length, and is used to request a block.
         # The payload contains the following information:
         #     index: integer specifying the zero-based piece index
         #     begin: integer specifying the zero-based byte offset within the piece
         #     length: integer specifying the requested length.
-        self.request = {'len': b'0013', 'id': 6,
-                        'index': None, 'begin': None, 'length': None}
+        self.request = {'len': b'0013', 'id': 6, 'index': None, 'begin': None, 'length': None}
 
         # The piece message is variable length, where X is the length of the block.
         # The payload contains the following information:
         #     index: integer specifying the zero-based piece index
         #     begin: integer specifying the zero-based byte offset within the piece
         #     block: block of data, which is a subset of the piece specified by index.
-        self.piece = {'len': b'0009' + self.X_PIECE_LENGTH,
-                      'id': 7, 'index': None, 'begin': None, 'block': None}
+        self.piece = {'len': b'0009' + self.X_PIECE_LENGTH, 'id': 7, 'index': None, 'begin': None, 'block': None}
 
         # The payload is identical to that of the "request" message. It is typically used during "End Game"
         # The "End Game"
-        self.cancel = {'len': b'0013', 'id': 8,
-                       'index': None, 'begin': None, 'length': None}
+        self.cancel = {'len': b'0013', 'id': 8, 'index': None, 'begin': None, 'length': None}
 
         # The port message is sent by newer versions of the Mainline that implements a DHT tracker.
         # The listen port is the port this peer's DHT node is listening on.
@@ -97,8 +103,7 @@ class Message:
         #            The len of the message. Assuming we use the default pstr in the handshake message, then the
         #            default value for pstr is 19
         #
-        self.handshake = {'info_hash': None, 'peer_id': 0,
-                          'pstr': self.PSTR, 'pstrlen': self.PSTRLEN}
+        self.handshake = {'info_hash':None, 'peer_id':0, 'pstr':self.PSTR, 'pstrlen':self.PSTRLEN}
 
         #  Tracker requests have the following keys:
         #      info_hash
@@ -156,25 +161,19 @@ class Message:
         """
         size_bitfield = math.ceil(num_pieces / 8)
         spare_bits = (8 * size_bitfield) - num_pieces
-        # self._bitfield['bitfield'] = [[0, 0, 0, 0, 0, 0, 0, 0], [
-        #    1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1]]
-        # print(self._bitfield)
-
         for i in range(size_bitfield - 1):
             # create a bitarray (piece) of 8 bits size
+            piece = bitarray(8)
             # set all the bits to 0 (missing piece)
+            piece.setall(False)
             # add the new piece to the bitfield (self._bitfield['bitfield])
-            p = bitarray(8)
-            p.setall(False)
-            self._bitfield['bitfield'].append(p)
-
+            self._bitfield['bitfield'].append(piece)
         # create a new bitarray (piece) of spare bits size
+        spare_piece = bitarray(spare_bits)
         # # set all the bits to 0 (missing piece)
+        spare_piece.setall(False)
         # add the new piece to the bitfield (self._bitfield['bitfield])
-        s = bitarray(spare_bits)
-        s.setall(False)
-        self._bitfield['bitfield'].append(s)
-        # print(self._bitfield)
+        self._bitfield['bitfield'].append(spare_piece)
 
     def get_bitfield(self):
         """
@@ -207,7 +206,9 @@ class Message:
         :param block_index:
         :return: True if the block is missing. Otherwise, returns False
         """
-        return False if self._bitfield['bitfield'][piece_index][block_index] else True
+        if self._bitfield['bitfield'][piece_index][block_index] == False:
+            return True
+        return False
 
     def is_piece_missing(self, piece_index):
         """
@@ -215,8 +216,8 @@ class Message:
         :param piece_index:
         :return: True if the piece is missing. Otherwise, returns False
         """
-        for b in self._bitfield['bitfield'][piece_index]:
-            if b == 0:
+        for block_index in range(len(self._bitfield['bitfield'][piece_index])):
+            if self._bitfield['bitfield'][piece_index][block_index] == False:
                 return True
         return False
 
@@ -226,24 +227,18 @@ class Message:
         :param piece_index:
         :return: the next missing block index
         """
-        i = 0
-        for b in self._bitfield['bitfield'][piece_index]:
-            if b == 0:
-                return i
-            i += 1
-        return -1
+        for block_index in range(len(self._bitfield['bitfield'][piece_index])):
+            if self.is_block_missing(piece_index,block_index):
+                return block_index
 
     def next_missing_piece_index(self):
         """
         TODO: finds the next missing piece
         :return: the next missing piece index
         """
-        i = 0
-        for p in self._bitfield['bitfield']:
-            if self.is_piece_missing(i):
-                return i
-            i += 1
-        return -1
+        for piece_index in range(len(self._bitfield['bitfield'])):
+            if self.is_piece_missing(piece_index):
+                return piece_index
 
     def set_block_to_completed(self, piece_index, block_index):
         """
@@ -252,4 +247,4 @@ class Message:
         :param block_index:
         :return: VOID
         """
-        self._bitfield['bitfield'][piece_index][block_index] = b'1'
+        self._bitfield['bitfield'][piece_index][block_index] = True
