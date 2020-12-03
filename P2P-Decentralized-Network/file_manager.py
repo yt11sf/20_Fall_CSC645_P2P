@@ -1,7 +1,6 @@
 import hashlib
 from os import path
 import shutil
-from config import Config
 
 
 class FileManager:
@@ -67,7 +66,7 @@ class FileManager:
         # your code here
         try:
             #! WARNING: This assumed the pieces and blocks were sorted in tmp file
-            with open("resources/tmp/" + path, "r") as file:
+            with open("resources/tmp/" + path, "rb") as file:
                 piece_offset = self.piece_offset(piece_index)
                 piece = file.read()[piece_offset:piece_offset+self.piece_size]
                 block = piece[offset:offset+length].decode("utf8")
@@ -106,7 +105,7 @@ class FileManager:
         entry += "$$$"
         entry += block
         entry += "\n"
-        with open("resources/tmp/blocks/" + path, "wb") as file:
+        with open("resources/tmp/blocks/" + path, "ab") as file:
             file.write(entry.encode("utf8"))
 
     def pointer(self, hash_info, piece_index, block_index):
@@ -131,7 +130,8 @@ class FileManager:
         if self.piece_validated(piece, piece_index):
             if not self.path_exist(self.path):
                 self.create_tmp_file()
-            with open(self.path, "ab") as file:
+            with open(self.path, "r+b") as file:
+                file.seek(self.piece_offset(piece_index))
                 file.write(piece.encode("utf-8"))
         else:
             print(self.ERROR_TEMPLATE.format(
@@ -161,7 +161,7 @@ class FileManager:
         try:
             pointers = self.get_pointers(self.hash_info, piece_index)
             blocks = None
-            with open(self.path, "r") as file:
+            with open(self.path, "rb") as file:
                 blocks = [block.decode("utf8") for block in file.readlines()]
             blocks_pointers = [block.split("$$$")[0] for block in blocks]
             for p in pointers:
