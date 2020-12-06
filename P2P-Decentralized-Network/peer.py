@@ -1,12 +1,3 @@
-"""
-Lab 8: peer.py
-This file contains a basic template of the Peer class. In this lab, your job
-is to implement all the parts marked as TODO.
-Note that you don´t need to run the code of this lab. The goal of this lab is to see how your logic works, and
-therefore, to make sure that you understood how peers perform the downloading
-and uploading process in the network, and also which challenges you may encounter
-when implementing those functionality.
-"""
 from server import Server  # assumes that your Tracker file is in this folder
 from threading import Thread
 from client import Client
@@ -16,7 +7,7 @@ import uuid
 
 
 class Peer:
-    SERVER_PORT = 4998
+    SERVER_PORT = 5000
     CLIENT_MIN_PORT_RANGE = 5001
     CLIENT_MAX_PORT_RANGE = 5010
 
@@ -52,19 +43,19 @@ class Peer:
         except Exception as error:
             print(error)  # server failed to run
 
-    # def run_tracker(self, announce=True):
-    #     """
-    #     Starts a threaded tracker
-    #     :param announce: True if this is the first announce in this network
-    #     :return: VOID
-    #     """
-    #     try:
-    #         if self.server:
-    #             self.tracker = Tracker(self.server, self.torrent, announce)
-    #             Thread(target=self.tracker.run, daemon=False).start()
-    #             print("Tracker running.....")
-    #     except Exception as error:
-    #         print(error)  # server failed to run
+    def run_tracker(self, announce=True):
+        """
+        Starts a threaded tracker
+        :param announce: True if this is the first announce in this network
+        :return: VOID
+        """
+        try:
+            if self.server:
+                self.tracker = Tracker(self.server, self.torrent, announce)
+                Thread(target=self.tracker.run, daemon=False).start()
+                print("Tracker running.....")
+        except Exception as error:
+            print(error)  # server failed to run
 
     def _connect_to_peer(self, client_port_to_bind, peer_ip_address, peer_port):
         """
