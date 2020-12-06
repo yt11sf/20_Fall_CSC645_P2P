@@ -23,6 +23,7 @@ class FileManager:
         self.path_to_original_file = None
         self.file_size = self.torrent.file_length()
         self.piece_size = self.torrent.piece_size()
+        self.block_size = self.torrent.block_size()
         self.hash_info = self.torrent.info_hash()
 
     def create_tmp_file(self):
@@ -147,7 +148,7 @@ class FileManager:
         """
         # your code here
         pointers = [self.pointer(hash_info, piece_index, block_index)
-                    for block_index in range(8)]
+                    for block_index in range(self.piece_size/self.block_size)]
         return pointers
 
     def extract_piece(self, piece_index):
