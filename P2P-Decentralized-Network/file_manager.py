@@ -181,9 +181,11 @@ class FileManager:
             print(self.ERROR_TEMPLATE.format(
                 "extract_piece()", type(ex).__name__, ex.args))
             print("block_pointers are not extracted correctly")
+            raise
         except Exception as ex:
             print(self.ERROR_TEMPLATE.format(
                 "extract_piece()", type(ex).__name__, ex.args))
+            raise
         return piece
 
     def piece_offset(self, piece_index):

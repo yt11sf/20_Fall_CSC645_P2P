@@ -1,17 +1,35 @@
+import bencodepy
+import threading
+import socket
 from server import Server
 
 
 class Tracker:
-    def __init__(self, server):
+    DHT_PORT = 6000
+    SELF_PORT = 6000  # Change port for other peers
+
+    def __init__(self, server, torrent, announce):
         self.server = server
+        self.torrent = torrent
+        self.announce = announce
+        if not self.announce:
+            self.DHT_PORT = 12006
         self.torrent_info_hash = self._get_torrent_info_hash()
+        self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        self.udp_socket.bind(("", self.DHT_PORT))
+        # will story a list of dictionaries representing entries in the routing table
+        # dictionaries stored here are in the following form
+        # {'nodeID': '<the node id is a SHA1 hash of the ip_address and port of the server node and a random uuid>',
+        #  'ip_address': '<the ip address of the node>', 'port': '<the port number of the node',
+        #  'info_hash': '<the info hash from the torrent file>', last_changed': 'timestamp'}
+        self._routing_table = []
 
     def _get_torrent_info_hash(self):
         """
-        TODO: creates the torrent info hash (SHA1) from the info section in the torrent file
-        :return:
+        creates the torrent info hash (SHA1) from the info section in the torrent file
         """
-        return 0  # returns the info hash
+        return self.torrent.create_info_hash()
 
     def add_peer_to_swarm(self, peer_id, peer_ip, peer_port):
         """
@@ -34,12 +52,62 @@ class Tracker:
         """
         pass  # your code here
 
-    def broadcast(self):
+    def broadcast(self, message, self_broadcast_enabled=False):
+        try:
+            encoded_message = self.encode(message)
+            self.udp_socket.sendto(
+                encoded_message, ('<broadcast>', self.DHT_PORT))
+            print("Message broadcast.....")
+        except socket.error as error:
+            print(error)
+
+    def send_udp_message(self, message, ip, port):
+        try:
+            new_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            message = self.encode(message)
+            new_socket.sendto(message, (ip, port))
+        except:
+            print("error")
+
+    def broadcast_listerner(self):
+        try:
+            print("Listening at DHT port: ", self.DHT_PORT)
+            while True:
+                raw_data, sender_ip_and_port = self.udp_socket.recvfrom(4096)
+                if raw_data:
+                    data = self.decode(raw_data)
+                    ip_sender = sender_ip_and_port[0]
+                    port_sender = sender_ip_and_port[1]
+                    print("data received by sender",
+                          data, ip_sender, port_sender)
+                    if not self.announce:
+                        self.process_query(data, ip_sender, port_sender)
+
+        except:
+            print("Error listening at DHT port")
+
+    def process_query(self, data, ip_sender, port_sender):
         """
-        TODO: broadcast the list of connected peers to all the peers in the network.
-        :return:
+        TODO: process an incoming query from a node
+        :return: the response
         """
-        pass  # your code here
+        query = data.get("q")
+        r = None
+
+        # Response = {"t": "aa", "y": "r", "r": {"id": "mnopqrstuvwxyz123456"}}
+        if query == "ping":
+            print("ping Query: \n" + str(data) + "\n")
+            r = {"id": self.encode(self._server.host)}
+            if self.torrent.validate_hash_info(self.decode(data["a"]["id"])):
+
+    def encode(self, message):
+        # bencodes a message
+        return bencodepy.encode(message)
+
+    def decode(self, bencoded_message):
+        # decodes a bencode message
+        bc = bencodepy.Bencode(encoding='utf-8')
+        return bc.decode(bencoded_message)
 
     def set_total_uploaded(self, peer_id):
         """
@@ -64,6 +132,25 @@ class Tracker:
         :param peer_torrent_info_hash: the info_hash from the info section of the torrent sent by other peer
         :return: True if the info_hashes are equal. Otherwise, returns false.
         """
-        return 0
+        if self.torrent.validate_hash_info(peer_torrent_info_hash):
+            return True
+        return False
 
+    def ping(self, t, y, q, a=None):
+        # create the ping dictionary
+        a = {"id": self.encode(self.torrent.info_hash(
+            self.torrent.get_metainfo()))}
+        ping_query = {"t": t, "y": y, "q": q, "a": a}
+        # pass the dictionary
+        self.broadcast(ping_query, self_broadcast_enabled=True)
+        # self.process_response()
 
+    def run(self):  # mod if start with broad casr
+        """
+        TODO: This function is called from the peer.py to start this tracker
+        :return: VOID
+        """
+        if self.announce:
+            self.ping("aa", "q", "ping")
+        else:
+            threading.Thread(target=self.broadcast_listerner).start()
