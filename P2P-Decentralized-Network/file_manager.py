@@ -66,7 +66,7 @@ class FileManager:
         block = None
         # your code here
         try:
-            #! WARNING: This assumed the pieces and blocks were sorted in tmp file
+            # ! WARNING: This assumed the pieces and blocks were sorted in tmp file
             with open("resources/tmp/" + path, "rb") as file:
                 piece_offset = self.piece_offset(piece_index)
                 piece = file.read()[piece_offset:piece_offset+self.piece_size]

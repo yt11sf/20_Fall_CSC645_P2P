@@ -86,8 +86,8 @@ class Peer():
             Thread(target=client.connect, args=(
                 peer_ip_address, peer_port), daemon=False).start()
             return True
-            #! Need to run downloader
-            #! Either create a run method in client, or do it here
+            # ! Need to run downloader
+            # ! Either create a run method in client, or do it here
         except Exception as ex:
             template = "\033[1m\033[91mEXCEPTION in peer.py:\033[0m {0} occurred. Arguments:\n{1!r}"
             print(template.format(type(ex).__name__, ex.args))
