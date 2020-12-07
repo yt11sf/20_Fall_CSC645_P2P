@@ -99,6 +99,7 @@ class Tracker:
             print("ping Query: \n" + str(data) + "\n")
             r = {"id": self.encode(self._server.host)}
             if self.torrent.validate_hash_info(self.decode(data["a"]["id"])):
+                pass
 
     def encode(self, message):
         # bencodes a message
