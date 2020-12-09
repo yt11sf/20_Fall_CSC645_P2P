@@ -153,5 +153,3 @@ class Tracker:
             self.ping("aa", "q", "ping")
         else:
             threading.Thread(target=self.broadcast_listerner).start()
-
-

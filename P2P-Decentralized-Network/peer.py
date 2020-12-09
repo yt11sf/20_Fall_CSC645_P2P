@@ -19,6 +19,9 @@ class Peer:
     LEECHER = 'leecher'
     SEEDER = 'seeder'
 
+    TORRENT_PATH = 'age.torrent'
+    ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in peer.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
+
     def __init__(self, role=SEEDER, server_ip_address='127.0.0.1'):
         """
         Class constructor
@@ -28,7 +31,7 @@ class Peer:
         self.server_ip_address = server_ip_address
         self.id = uuid.uuid4()  # creates unique id for the peer
         self.role = role
-        self.torrent = Torrent("age.torrent") # Commented out from this lab b/c not needed
+        self.torrent = Torrent(self.TORRENT_PATH)
         self.tracker = None
 
     def run_server(self):
@@ -40,8 +43,9 @@ class Peer:
             # must thread the server, otherwise it will block the main thread
             Thread(target=self.server.run, daemon=False).start()
             print("Server started.........")
-        except Exception as error:
-            print(error)  # server failed to run
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "run_server()", type(ex).__name__, ex.args))
 
     def run_tracker(self, announce=True):
         """
@@ -54,8 +58,9 @@ class Peer:
                 self.tracker = Tracker(self.server, self.torrent, announce)
                 Thread(target=self.tracker.run, daemon=False).start()
                 print("Tracker running.....")
-        except Exception as error:
-            print(error)  # server failed to run
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "run_tracker()", type(ex).__name__, ex.args))
 
     def _connect_to_peer(self, client_port_to_bind, peer_ip_address, peer_port):
         """
@@ -70,6 +75,7 @@ class Peer:
                                 the client needs to connect to
         :return: VOID
         """
+        print('Trying ', peer_ip_address, '/', client_port_to_bind)
         client = Client()
         try:
             client.bind('0.0.0.0', client_port_to_bind)
@@ -77,8 +83,11 @@ class Peer:
             Thread(target=client.connect, args=(peer_ip_address, peer_port)).start()
             print("Server started.........")
             return True
-        except Exception as error:
-            print(error)  # server failed to run
+            # ! Need to run downloader
+            # ! Either create a run method in client, or do it here
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "_connect_to_peer()", type(ex).__name__, ex.args))
             client.close()
             return False
 
@@ -98,39 +107,42 @@ class Peer:
             if client_port > self.CLIENT_MAX_PORT_RANGE:
                 print("Connected max Peer ports...")
                 break
-            if "/" in ip_address:
-                connection_details = ip_address.split("/")
-                def_peer_port = int(connection_details[1])
-                peer_ip = connection_details[0]
-                self._connect_to_peer(client_port, peer_ip, def_peer_port)
-                client_port = client_port + 1
+            if '/' in peer_ip:
+                peer_ip, peer_port = peer_ip.split('/')
+            if self._connect_to_peer(client_port, peer_ip, int(peer_port)):
+                client_port += 1
 
-# testing #seeder for server. peer for leecher
-peer = Peer(role='peer')
-print("Peer: " + str(peer.id) + " running its server: ")
-peer.run_server()
-#print("Peer: " + str(peer.id) + " running its clients: ")
-# Two ways of testing this:
-#  Locally (same machine):
-#      1. Run two peers in the same machine using different ports. Comment out the next three lines (only servers run)
-#      2. Then run a third peer, executing the next two lines of code.
-#  Using different machines
-#      1. Run two peers in different machines.
-#      2. Run a peer in this machine.
-if peer.role == peer.LEECHER or peer.role == peer.PEER:
-    peer_ips = ['127.0.0.1/4999', '127.0.0.1/5000']  # this list will be sent by the tracker in your P2P assignment
-    peer.connect(peer_ips)
 
-""" Sample output running this in the same machine """
-# Peer: 6d223864-9cd7-4327-ad02-7856d636af66 running its server:
-# Listening for new peers at 127.0.0.1/5000
-# Peer: 6d223864-9cd7-4327-ad02-7856d636af66 running its clients:
-# Client id 5001 connected to peer 127.0.0.1/7001
-# Client id 5002 connected to peer 127.0.0.1/7000
+if __name__ == '__main__':
+    role = input('Enter role: ') or 'peer'  # ! testing
+    server_ip_address = input('Enter peer port: ') or '127.0.0.1'  # ! testing
+    # testing
+    peer = Peer(role=role, server_ip_address=server_ip_address)
+    print("Peer: " + str(peer.id) + " running its server: ")
+    peer.run_server()
+    #print("Peer: " + str(peer.id) + " running its clients: ")
+    # Two ways of testing this:
+    #  Locally (same machine):
+    #      1. Run two peers in the same machine using different ports. Comment out the next three lines (only servers run)
+    #      2. Then run a third peer, executing the next two lines of code.
+    #  Using different machines
+    #      1. Run two peers in different machines.
+    #      2. Run a peer in this machine.
+    if peer.role == peer.LEECHER or peer.role == peer.PEER:
+        # this list will be sent by the tracker in your P2P assignment
+        peer_ips = ['127.0.0.1/4998', '127.0.0.1/4999']
+        peer.connect(peer_ips)
 
-""" Sample output running one peer in this machibe in the other two in different machines """
-# Peer: 6f4e024e9-0265-47ba-a525-1c880a7a9a5d running its server:
-# Listening for new peers at 10.0.0.248/5000
-# Peer: f4e024e9-0265-47ba-a525-1c880a7a9a5d running its clients:
-# Client id 5001 connected to peer 10.0.0.251/5000
-# Client id 5002 connected to peer 127.0.0.242/5000
+    """ Sample output running this in the same machine """
+    # Peer: 6d223864-9cd7-4327-ad02-7856d636af66 running its server:
+    # Listening for new peers at 127.0.0.1/5000
+    # Peer: 6d223864-9cd7-4327-ad02-7856d636af66 running its clients:
+    # Client id 5001 connected to peer 127.0.0.1/7001
+    # Client id 5002 connected to peer 127.0.0.1/7000
+
+    """ Sample output running one peer in this machibe in the other two in different machines """
+    # Peer: 6f4e024e9-0265-47ba-a525-1c880a7a9a5d running its server:
+    # Listening for new peers at 10.0.0.248/5000
+    # Peer: f4e024e9-0265-47ba-a525-1c880a7a9a5d running its clients:
+    # Client id 5001 connected to peer 10.0.0.251/5000
+    # Client id 5002 connected to peer 127.0.0.242/5000
