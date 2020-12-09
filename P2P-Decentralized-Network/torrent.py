@@ -21,7 +21,7 @@ class Torrent:
         sha1.update(torrent_info)
         return sha1.hexdigest()
 
-    def info_hash(self):
+    def create_info_hash(self):
         """
         Creates the torrent info hash (SHA1) from the info section in the torrent file
         :return:
@@ -37,7 +37,7 @@ class Torrent:
         return self.torrent_data['announce_list']
 
     def creation_date(self):
-        return self.torrent_data['creation date']
+        return str(self.torrent_data['creation date'])
 
     def comment(self):
         return self.torrent_data['comment']

@@ -1,12 +1,3 @@
-# file:           message.py
-# Author:         YeeJian Tan
-# Date:           11/14/2020
-# Description:    This file contains the Message and Lab7UnitTests classes.
-# Purpose:        Lab 7 CSC645 Computer Networks SFSU
-# Imports needed: math, bitarray and unittest
-# Comments references: http://www.bittorrent.org/beps/bep_0003.html
-
-
 import math
 from bitarray import bitarray  # you must install this library
 import unittest

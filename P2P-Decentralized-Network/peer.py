@@ -1,20 +1,12 @@
-from client import Client
-from server import Server
-from tracker import Tracker
-from config import Config
-from downloader import downloader
+from server import Server  # assumes that your Tracker file is in this folder
 from threading import Thread
+from client import Client
+from tracker import Tracker  # assumes that your Tracker file is in this folder
+from torrent import Torrent  # assumes that your Torrent file is in this folder
 import uuid
 
 
-class Peer():
-
-    SEEDER = 2
-    LECHES = 1
-    PEER = 0
-
-    # copy and paste here your code implementation from the peer.py in your Labs
-
+class Peer:
     SERVER_PORT = 5000
     CLIENT_MIN_PORT_RANGE = 5001
     CLIENT_MAX_PORT_RANGE = 5010
@@ -30,13 +22,12 @@ class Peer():
     TORRENT_PATH = 'age.torrent'
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in peer.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
 
-    def __init__(self, role='peer', server_ip_address='127.0.0.1'):
+    def __init__(self, role=SEEDER, server_ip_address='127.0.0.1'):
         """
         Class constructor
         :param server_ip_address: used when need to use the ip assigned by LAN
         """
-        self.server = Server(
-            server_ip_address, self.SERVER_PORT)  # inherits methods from the server
+        self.server = Server(server_ip_address, self.SERVER_PORT)  # inherits methods from the server
         self.server_ip_address = server_ip_address
         self.id = uuid.uuid4()  # creates unique id for the peer
         self.role = role
@@ -87,9 +78,10 @@ class Peer():
         print('Trying ', peer_ip_address, '/', client_port_to_bind)
         client = Client()
         try:
-            client.clientsocket.bind(('0.0.0.0', client_port_to_bind))
-            Thread(target=client.connect, args=(
-                peer_ip_address, peer_port), daemon=False).start()
+            client.bind('0.0.0.0', client_port_to_bind)
+            # must thread the client too, otherwise it will block the main thread
+            Thread(target=client.connect, args=(peer_ip_address, peer_port)).start()
+            print("Server started.........")
             return True
             # ! Need to run downloader
             # ! Either create a run method in client, or do it here
@@ -98,6 +90,7 @@ class Peer():
                 "_connect_to_peer()", type(ex).__name__, ex.args))
             client.close()
             return False
+
 
     def connect(self, peers_ip_addresses):
         """
@@ -110,9 +103,9 @@ class Peer():
         :return: VOID
         """
         client_port = self.CLIENT_MIN_PORT_RANGE
-        peer_port = self.SERVER_PORT
-        for peer_ip in peers_ip_addresses:
+        for ip_address in peers_ip_addresses:
             if client_port > self.CLIENT_MAX_PORT_RANGE:
+                print("Connected max Peer ports...")
                 break
             if '/' in peer_ip:
                 peer_ip, peer_port = peer_ip.split('/')
@@ -121,7 +114,7 @@ class Peer():
 
 
 if __name__ == '__main__':
-    role = input('Enter role: ') or 'seeder'  # ! testing
+    role = input('Enter role: ') or 'peer'  # ! testing
     server_ip_address = input('Enter peer port: ') or '127.0.0.1'  # ! testing
     # testing
     peer = Peer(role=role, server_ip_address=server_ip_address)
