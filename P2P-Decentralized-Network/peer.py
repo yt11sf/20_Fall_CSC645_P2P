@@ -27,6 +27,9 @@ class Peer():
     LEECHER = 'leecher'
     SEEDER = 'seeder'
 
+    TORRENT_PATH = 'age.torrent'
+    ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in peer.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
+
     def __init__(self, role='peer', server_ip_address='127.0.0.1'):
         """
         Class constructor
@@ -37,7 +40,7 @@ class Peer():
         self.server_ip_address = server_ip_address
         self.id = uuid.uuid4()  # creates unique id for the peer
         self.role = role
-        self.torrent = Torrent('age.torrent')
+        self.torrent = Torrent(self.TORRENT_PATH)
         self.tracker = None
 
     def run_server(self):
@@ -49,8 +52,9 @@ class Peer():
             # must thread the server, otherwise it will block the main thread
             Thread(target=self.server.run, daemon=False).start()
             print("Server started.........")
-        except Exception as error:
-            print(error)  # server failed to run
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "run_server()", type(ex).__name__, ex.args))
 
     def run_tracker(self, announce=True):
         """
@@ -63,8 +67,9 @@ class Peer():
                 self.tracker = Tracker(self.server, self.torrent, announce)
                 Thread(target=self.tracker.run, daemon=False).start()
                 print("Tracker running.....")
-        except Exception as error:
-            print(error)  # server failed to run
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "run_tracker()", type(ex).__name__, ex.args))
 
     def _connect_to_peer(self, client_port_to_bind, peer_ip_address, peer_port):
         """
@@ -80,7 +85,7 @@ class Peer():
         :return: VOID
         """
         print('Trying ', peer_ip_address, '/', client_port_to_bind)
-        client = Client('Peer_1')  # ! Hard coded id_key
+        client = Client()
         try:
             client.clientsocket.bind(('0.0.0.0', client_port_to_bind))
             Thread(target=client.connect, args=(
@@ -89,8 +94,8 @@ class Peer():
             # ! Need to run downloader
             # ! Either create a run method in client, or do it here
         except Exception as ex:
-            template = "\033[1m\033[91mEXCEPTION in peer.py:\033[0m {0} occurred. Arguments:\n{1!r}"
-            print(template.format(type(ex).__name__, ex.args))
+            print(self.ERROR_TEMPLATE.format(
+                "_connect_to_peer()", type(ex).__name__, ex.args))
             client.close()
             return False
 
@@ -116,7 +121,7 @@ class Peer():
 
 
 if __name__ == '__main__':
-    role = input('Enter peer role: ')  # ! testing
+    role = input('Enter role: ') or 'seeder'  # ! testing
     server_ip_address = input('Enter peer port: ') or '127.0.0.1'  # ! testing
     # testing
     peer = Peer(role=role, server_ip_address=server_ip_address)

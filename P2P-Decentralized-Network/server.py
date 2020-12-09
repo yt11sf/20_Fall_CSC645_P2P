@@ -101,8 +101,7 @@ class Server(object):
         """
         clientid = {'clientid': client_id}
         self._send(clientid)
-        # ! Client might not return id_key. might want to take ok status
-        self.client_id_key = self._receive()['id_key']
+        # ! might want to take ok status
         with self.lock:
             print(f'Client %s with clientid %d has connected to this server' %
                   (self.client_id_key, self.client_id))

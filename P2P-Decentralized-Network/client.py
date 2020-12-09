@@ -13,7 +13,7 @@ class Client(object):
 
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in client.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
 
-    def __init__(self, id_key):
+    def __init__(self):
         """
         Class constractpr
         """
@@ -22,15 +22,12 @@ class Client(object):
         # The SOCK_STREAM means connection oriented TCP protocol.
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.clientid = 0
-        self.id_key = id_key
 
     def set_info(self):
         data = self.receive()
         print(data)
         self.client_id = data['clientid']  # sets the client id to this client
-        self.send({'id_key': self.id_key})
         print('Your client info is:')
-        print('Client Name: ' + str(self.id_key))
         print("Client ID: " + str(self.client_id))
 
     def connect(self, host="127.0.0.1", port=12005):
@@ -166,6 +163,5 @@ class Client(object):
 if __name__ == '__main__':
     host = input('Enter the server IP Address: ') or "127.0.0.1"
     port = input('Enter the server port: ') or 12005
-    id_key = input('Your id key (i.e your name): ')
-    client = Client(id_key)
+    client = Client()
     client.connect(host, int(port))
