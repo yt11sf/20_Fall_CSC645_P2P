@@ -2,6 +2,7 @@ import socket
 import pickle
 import threading
 from uploader import Uploader
+from torrent import Torrent
 
 
 class Server(object):
@@ -13,6 +14,7 @@ class Server(object):
     server console.
     """
     MAX_NUM_CONN = 10  # keeps 10 clients in queue
+    TORRENT_PATH = 'age.torrent'
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in server.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
 
     def __init__(self, server_ip_address="127.0.0.1", server_port=12000):
@@ -27,6 +29,8 @@ class Server(object):
         self.clienthandlers = {}  # a list of uploaders
         self.threadStarted = {}  # DEBUGGING ONLY. keeping track of thread started
         self.lock = threading.Lock()
+        # ! Assume only age.torrent is used
+        self.torrent = Torrent(self.TORRENT_PATH)
 
     def _bind(self):
         """
@@ -89,8 +93,8 @@ class Server(object):
         :return: a client handler object.
         """
         self.set_client_info(self, clientsocket, addr[1])
-        # ! How do we get torrent here?
-        client_handler = Uploader(addr[1], self, clientsocket, addr, torrent)
+        client_handler = Uploader(
+            addr[1], self, clientsocket, addr, self.torrent)
         return client_handler
 
     def set_client_info(self, clientsocket, client_id):
@@ -100,8 +104,7 @@ class Server(object):
         :return:
         """
         clientid = {'clientid': client_id}
-        self._send(clientid)
-        # ! might want to take ok status
+        self._send(clientsocket, clientid)
         with self.lock:
             print(f'Client %s with clientid %d has connected to this server' %
                   (self.client_id_key, self.client_id))
