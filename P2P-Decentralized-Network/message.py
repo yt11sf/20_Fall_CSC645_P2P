@@ -17,7 +17,7 @@ class Message:
     X_BITFIELD_LENGTH = b'0000'
     X_PIECE_LENGTH = b'0000'
 
-    def __init__(self):
+    def __init__(self, peer_id, info_hash):
         # A keep-alive message must be sent to maintain the connection alive if no command
         # have been sent for a given amount of time. This amount of time is generally two minutes.
         self.keep_alive = {'len': b'0000'}
@@ -97,7 +97,7 @@ class Message:
         #            The len of the message. Assuming we use the default pstr in the handshake message, then the
         #            default value for pstr is 19
         #
-        self.handshake = {'info_hash': None, 'peer_id': 0,
+        self.handshake = {'info_hash': info_hash, 'peer_id': peer_id,
                           'pstr': self.PSTR, 'pstrlen': self.PSTRLEN}
 
         #  Tracker requests have the following keys:
@@ -141,7 +141,7 @@ class Message:
         #      IMPORTANT: This message is only used when KRPC protocol is not supported by the tracker. See lab 6 for more
         #                 info about KRPC protocol
         #
-        self.tracker = {'torrent_info_hash': -1, 'peer_id': -1, "ip": -1, 'port': -1, 'uploaded': -1,
+        self.tracker = {'torrent_info_hash': info_hash, 'peer_id': peer_id, "ip": -1, 'port': -1, 'uploaded': -1,
                         'downloaded': -1, 'left': -1, 'event': -1}
 
     #############################  Bitfield Methods ####################################################
@@ -253,65 +253,3 @@ class Message:
         :return: VOID
         """
         self._bitfield['bitfield'][piece_index][block_index] = b'1'
-
-# This is a unit test class to test your code, please do not modify it.
-
-
-class Lab7UnitTests(unittest.TestCase):
-    """
-    Description: This class provides unit tests for lab 7 in CSC645 Computer Networks
-    Author: Jose Ortiz
-    Date: 04/24/2020
-    NOTE: This class needs the unittest import: "import unittest"
-    NOTE: The message class needs the import "from bitarray import bitarray"
-    USAGE:
-         message = Message() # the object created from the student class Message in lab 7
-         unit_test = Lab7UnitTests(message)
-         unit_test.start()
-    """
-
-    def setUp(self):
-        self.message = Message()
-        # this will create a bitfield of size 25. See Message class (init_bitfield())
-        self.message.init_bitfield(200)
-
-    def test_init_bitfield(self):
-        size_bitfield = len(self.message._bitfield['bitfield'])
-        self.assertEqual(size_bitfield, 25)
-
-    def test_is_block_missing(self):
-        piece_index = 20
-        block_index = 5
-        # block is set to 1 (not missing)
-        self.message._bitfield['bitfield'][piece_index][block_index] = True
-        # block is not missing returns False
-        self.assertFalse(self.message.is_block_missing(
-            piece_index, block_index))
-
-    def test_is_piece_missing(self):
-        piece_index = 19
-        # sets piece index 19 to not missing
-        self.message._bitfield['bitfield'][piece_index] = b'11111111'
-        # piece is not missing returns False
-        self.assertFalse(self.message.is_piece_missing(piece_index))
-
-    def test_next_block_missing(self):
-        piece_index = 20
-        # not missing
-        self.message._bitfield['bitfield'][piece_index][0] = True
-        # not missing
-        self.message._bitfield['bitfield'][piece_index][1] = True
-        next_missing_block_index = 2  # this will be the missing block
-        self.assertEqual(self.message.next_missing_block_index(
-            piece_index), next_missing_block_index)
-
-    def test_next_missing_piece(self):
-        piece_index = 0
-        self.message._bitfield['bitfield'][piece_index] = b'11111111'
-        next_missing_piece_index = 1
-        self.assertEqual(self.message.next_missing_piece_index(),
-                         next_missing_piece_index)
-
-
-if __name__ == '__main__':
-    unittest.main()

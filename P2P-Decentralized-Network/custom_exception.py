@@ -3,6 +3,6 @@ class ClientClosedException(Exception):
     pass
 
 
-class ServerResponseException(Exception):
-    """Unable to process server response"""
+class ProtocolException(Exception):
+    """Unable to process data received"""
     pass

@@ -1,7 +1,11 @@
 import socket
 import pickle
 import threading
+
+from message import Message
+from torrent import Torrent
 from uploader import Uploader
+from custom_exception import ProtocolException
 
 
 class Server(object):
@@ -13,6 +17,7 @@ class Server(object):
     server console.
     """
     MAX_NUM_CONN = 10  # keeps 10 clients in queue
+    TORRENT_PATH = 'age.torrent'
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in server.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
 
     def __init__(self, server_ip_address="127.0.0.1", server_port=12000):
@@ -27,6 +32,8 @@ class Server(object):
         self.clienthandlers = {}  # a list of uploaders
         self.threadStarted = {}  # DEBUGGING ONLY. keeping track of thread started
         self.lock = threading.Lock()
+        self.torrent = Torrent(self.TORRENT_PATH)
+        self.message = Message(-1, self.torrent.create_info_hash())
 
     def _bind(self):
         """
@@ -51,7 +58,13 @@ class Server(object):
             with self.lock:
                 print(self.ERROR_TEMPLATE.format(
                     "_listen()", type(ex).__name__, ex.args))
-                self.serversocket.close()
+            self.serversocket.close()
+        except Exception as ex:
+            with self.lock:
+                print(self.ERROR_TEMPLATE.format(
+                    "_listen()", type(ex).__name__, ex.args))
+                print("The threads")
+            self.serversocket.close()
 
     def _accept_clients(self):
         """
@@ -88,23 +101,52 @@ class Server(object):
         :param address:
         :return: a client handler object.
         """
-        self.set_client_info(self, clientsocket, addr[1])
-        # ! How do we get torrent here?
-        client_handler = Uploader(addr[1], self, clientsocket, addr, torrent)
+        peer_id = self.set_client_info(self, clientsocket)
+        if peer_id == -1:
+            with self.lock:
+                print(
+                    'Connection attempted but failed due to not_interested/choke/different info hash')
+            return
+
+        client_handler = Uploader(
+            peer_id, self, clientsocket, addr, self.torrent)
         return client_handler
 
-    def set_client_info(self, clientsocket, client_id):
+    def set_client_info(self, clientsocket):
         """
-        Send client id to client
+        Communicate with downloader to determine whether connection is neccessary
         :param clientsocket:
         :return:
         """
-        clientid = {'clientid': client_id}
-        self._send(clientid)
-        # ! might want to take ok status
-        with self.lock:
-            print(f'Client %s with clientid %d has connected to this server' %
-                  (self.client_id_key, self.client_id))
+        handshake = self._receive(clientsocket)
+        # {'info_hash', 'peer_id','pstr', 'pstrlen'}
+        info_hash = handshake['info_hash']
+        peer_id = handshake['peer_id']
+        # info hash is different
+        if not self.torrent.validate_hash_info(info_hash):
+            self._send(clientsocket, {'status': 'not ok',
+                                      'message': 'different info hash'})
+            raise Exception('Received different info_hash')
+        self._send(clientsocket, {'status': 'ok'})
+        interested = self._receive(clientsocket)
+        # interested? {'len': b'0001', 'id': 2} : {'len': b'0001', 'id': 3}
+        if interested['id'] == 2:
+            # too many parallel connection
+            if len(self.clienthandlers) >= self.MAX_NUM_CONN:
+                self._send(clientsocket, self.message.choke)
+                return -1
+            else:
+                self._send(clientsocket, self.message.unchoke)
+                return peer_id
+        elif interested['id'] == 3:
+            return -1
+        else:   # message invalid
+            with self.lock:
+                print(self.ERROR_TEMPLATE.format(
+                    "set_client_info()", "ProtocolException",
+                    "Expecting interested/not_insterested from downloader but received" + str(interested)))
+            raise ProtocolException(
+                'Protocol received from downloader is invalid')
 
     def _send(self, clientsocket, data):
         """

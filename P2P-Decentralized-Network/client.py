@@ -1,6 +1,6 @@
 import socket
 import pickle
-from custom_exception import ClientClosedException, ServerResponseException
+from custom_exception import ClientClosedException, ProtocolException
 
 
 class Client(object):
@@ -58,7 +58,7 @@ class Client(object):
                     print(
                         '\n--------------------Client Disconnected---------------------\n')
                     break
-                except ServerResponseException as ex:
+                except ProtocolException as ex:
                     print(self.ERROR_TEMPLATE.format(
                         "connect()", type(ex).__name__, ex.args))
                 except:
@@ -98,8 +98,9 @@ class Client(object):
                 raise ClientClosedException()
             else:
                 print(self.ERROR_TEMPLATE.format(
-                    "handle_response()", "ServerResponseException", f"Header is wrong: %s" % header))
-                raise ServerResponseException()
+                    "handle_response()", "ProtocolException", f"Header is wrong: %s" % header))
+                raise ProtocolException(
+                    'Protocol received from server is invalid')
         if response:
             if response != 'ignore':
                 return response
