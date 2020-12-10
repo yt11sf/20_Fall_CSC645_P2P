@@ -1,56 +1,71 @@
-# File: tracker.py for Peer 1
-# Author: Kevin Nunura
-# SID: 920347620
-# Date: 11/11/2020
-# Description: this file contains the implementation of the tracker class.
-
-import bencodepy
+from server import Server
 import socket
 import threading
+import bencodepy
 
 class Tracker:
-    """
-    This class contains methods that provide implementations to support trackerless peers
-    supporting the DHT and KRPC protocols
-    """
     DHT_PORT = 6000
+    SELF_PORT = 6000 #Change port for other peers
 
-    def __init__(self, server, client, torrent, announce=True):
-        """
-        TODO: Add more work here as needed.
-        :param server:
-        :param torrent:
-        :param announce:
-        """
-        self._server = server
-        self._client = client
-        self._torrent = torrent
-        self._is_announce = announce
-        # self._clienthandler = server.clienthandlers[0]
+    def __init__(self, server, torrent, announce):
+        self.server = server
+        self.torrent = torrent
+        self.announce = announce
+        if not self.announce:
+            self.DHT_PORT = 12006
+        self.torrent_info_hash = self._get_torrent_info_hash()
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         self.udp_socket.bind(("", self.DHT_PORT))
-        self.non_broadcast_socket = None
         # will story a list of dictionaries representing entries in the routing table
         # dictionaries stored here are in the following form
         # {'nodeID': '<the node id is a SHA1 hash of the ip_address and port of the server node and a random uuid>',
         #  'ip_address': '<the ip address of the node>', 'port': '<the port number of the node',
         #  'info_hash': '<the info hash from the torrent file>', last_changed': 'timestamp'}
-        self.DHT_routing_table = None
+        self._routing_table = []
+
+
+
+    def _get_torrent_info_hash(self):
+        """
+        creates the torrent info hash (SHA1) from the info section in the torrent file
+        """
+        return self.torrent.create_info_hash()
+
+    def add_peer_to_swarm(self, peer_id, peer_ip, peer_port):
+        """
+        TODO: when a peers connects to the network adds this peer
+              to the list of peers connected
+        :param peer_id:
+        :param peer_ip:
+        :param peer_port:
+        :return:
+        """
+        pass  # your code here
+
+    def remove_peer_from_swarm(self, peer_id):
+        """
+        TODO: removes a peer from the swarm when it disconnects from the network
+              Note: this method needs to handle exceptions when the peer disconnected abruptly without
+              notifying the network (i.e internet connection dropped...)
+        :param peer_id:
+        :return:
+        """
+        pass  # your code here
 
     def broadcast(self, message, self_broadcast_enabled=False):
         try:
             encoded_message = self.encode(message)
             self.udp_socket.sendto(encoded_message, ('<broadcast>', self.DHT_PORT))
-            # print("Message broadcast.....")
+            print("Message broadcast.....")
         except socket.error as error:
             print(error)
 
-    def send_udp_message(self, message, target_ip, target_port):
+    def send_udp_message(self, message, ip, port):
         try:
             new_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             message = self.encode(message)
-            new_socket.sendto(message, (target_ip, 12006)) #HARDCODING port 12006 for communication with Peer 3 because else it wont work
+            new_socket.sendto(message, (ip, port))
         except:
             print("error")
 
@@ -63,8 +78,10 @@ class Tracker:
                     data = self.decode(raw_data)
                     ip_sender = sender_ip_and_port[0]
                     port_sender = sender_ip_and_port[1]
-                    # print("data received by sender", data, ip_sender, port_sender)
-                    self.process_query(data, ip_sender, port_sender)
+                    print("data received by sender", data, ip_sender, port_sender)
+                    if not self.announce:
+                        self.process_query(data, ip_sender, port_sender)
+
         except:
             print("Error listening at DHT port")
 
@@ -80,31 +97,8 @@ class Tracker:
         if query == "ping":
             print("ping Query: \n" + str(data) + "\n")
             r = {"id": self.encode(self._server.host)}
-            if self._torrent.validate_hash_info(self.decode(data["a"]["id"])):
-                self.DHT_routing_table = [{"nodeID": self._torrent.info_hash("127.0.0.1:6000"),
-                                   "ip_address": "127.0.0.1",
-                                   "port": self.DHT_PORT,
-                                   "info_hash": self._torrent.info_hash(self._torrent.metainfo())}]
+            if self.torrent.validate_hash_info(self.decode(data["a"]["id"])):
 
-        # Response with peers = {"t":"aa", "y":"r", "r": {"id":"abcdefghij0123456789", "token":"aoeusnth", "values": ["axje.u", "idhtnm"]}}
-        # Response with closest nodes = {"t":"aa", "y":"r", "r": {"id":"abcdefghij0123456789", "token":"aoeusnth", "nodes": "def456..."}}
-        elif query == "get_peers":
-            print("get_peers Query: \n" + str(data) + "\n")
-            if self.DHT_routing_table:
-                r = {"id": self.encode(self._server.host), "token": "aoeusnth", "values": ("["+self.DHT_routing_table[0].get("nodeID")+"]")}
-
-        # Response = {"t": "aa", "y": "r", "r": {"id": "0123456789abcdefghij", "nodes": "def456..."}}
-        elif query == "find_node":
-            print("find_node Query: \n" + str(data) + "\n")
-            r = {"id": self.encode(self._server.host), "nodes": self.encode(self.DHT_routing_table[0].get("nodeID"))}
-
-        # Response = {"t": "aa", "y": "r", "r": {"id": "mnopqrstuvwxyz123456"}}
-        elif query == "announce_peers":
-            print("announce_peers Query: \n" + str(data) + "\n")
-            r = {"id": self.encode(self._server.host)}
-
-        response = {"t": "aa", "y": "r", "r": r}
-        self.send_udp_message(response, ip_sender, port_sender)
 
     def encode(self, message):
         # bencodes a message
@@ -115,47 +109,47 @@ class Tracker:
         bc = bencodepy.Bencode(encoding='utf-8')
         return bc.decode(bencoded_message)
 
+    def set_total_uploaded(self, peer_id):
+        """
+        TODO: sets the total data uploaded so far by the peer passed as a parameter
+        :param peer_id:
+        :return: VOID
+        """
+        pass  # your code here
+
+    def total_downloaded(self, peer_id):
+        """
+        TODO: sets the total data downloaded so far by the peer passed as a parameter
+        :param peer_id:
+        :return: VOID
+        """
+        pass  # your code here
+
+    def validate_torrent_info_hash(self, peer_torrent_info_hash):
+        """
+        TODO: compare the info_hash generated by this peer with another info_hash sent by another peer
+              this is done to make sure that both peers agree to share the same file.
+        :param peer_torrent_info_hash: the info_hash from the info section of the torrent sent by other peer
+        :return: True if the info_hashes are equal. Otherwise, returns false.
+        """
+        if self.torrent.validate_hash_info(peer_torrent_info_hash):
+            return True
+        return False
+
     def ping(self, t, y, q, a=None):
         # create the ping dictionary
-        a = {"id": self.encode(self._torrent.info_hash(self._torrent.metainfo()))}
+        a = {"id": self.encode(self.torrent.info_hash(self.torrent.get_metainfo()))}
         ping_query = {"t": t, "y": y, "q": q, "a": a}
         # pass the dictionary
         self.broadcast(ping_query, self_broadcast_enabled=True)
-        self.process_response()
+        # self.process_response()
 
-    def find_node(self, t, y, q, a=None):
-        # find_node Query = {"t":"aa", "y":"q", "q":"find_node", "a": {"id":"abcdefghij0123456789", "target":"mnopqrstuvwxyz123456"}}
-        a = {"id": self.encode("127.0.0.1"), "target": self.encode("127.0.0.1:6000")}
-        find_node_query = {"t": t, "y": y, "q": q, "a": a}
-        self.send_udp_message(find_node_query, self._DHT_routing_table["nodes"]["ip_address"], self._DHT_routing_table["nodes"]["port"])
-        self.process_response()
-
-    def get_peers(self, t, y, q, a=None):
-        # get_peers Query = {"t": "aa", "y": "q", "q": "get_peers", "a": {"id": "abcdefghij0123456789", "info_hash": "mnopqrstuvwxyz123456"}}
-        a = {"id": self.encode("127.0.0.1"), "info_hash": self.encode(self._torrent.info_hash(self._torrent.metainfo()))}
-        get_peers_query = {"t": t, "y": y, "q": q, "a": a}
-        self.send_udp_message(get_peers_query, self._DHT_routing_table["nodes"]["ip_address"], self._DHT_routing_table["nodes"]["port"])
-        self.process_response()
-
-    def announce_peers(self, t, y, q, a=None):
-        implied = 1
-        a = {"id": self.encode("127.0.0.1"), "implied_port": implied, "info_hash": self._torrent.info_hash(self._torrent.metainfo()), "port": self.DHT_PORT
-             , "token": "aoeusnth"}
-        get_peers_query = {"t": t, "y": y, "q": q, "a": a}
-        self.send_udp_message(get_peers_query, self._DHT_routing_table["nodes"]["ip_address"], self._DHT_routing_table["nodes"]["port"])
-        self.process_response()
-
-
-    def run(self, start_with_broadcast=False):
+    def run(self): # mod if start with broad casr
         """
         TODO: This function is called from the peer.py to start this tracker
         :return: VOID
         """
-        if self._is_announce:
-            if start_with_broadcast:
-                message = "Anyone listening in DHT port?"
-                self.broadcast(message, self_broadcast_enabled=True)
-            else:
-                threading.Thread(target=self.broadcast_listerner).start()
+        if self.announce:
+            self.ping("aa", "q", "ping")
         else:
-            print("This tracker does not support DHT protocol")
+            threading.Thread(target=self.broadcast_listerner).start()
