@@ -4,6 +4,7 @@ from client import Client
 from tracker import Tracker  # assumes that your Tracker file is in this folder
 from torrent import Torrent  # assumes that your Torrent file is in this folder
 import uuid
+import time
 
 
 class Peer:
@@ -60,8 +61,10 @@ class Peer:
                 self.tracker = Tracker(self.server, self.torrent, announce)
                 Thread(target=self.tracker.run, daemon=False).start()
                 # self.tracker.run()
-                self.DHT = self.tracker.get_DHT()
-                print("Tracker running.....")
+                while not self.DHT:
+                    self.DHT = self.tracker.get_DHT()
+                    time.sleep(.5)  # optional
+                    # print("Tracker running.....")
         except Exception as error:
             print(error)  # server failed to run
 
