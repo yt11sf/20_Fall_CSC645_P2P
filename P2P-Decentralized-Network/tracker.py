@@ -3,9 +3,10 @@ import socket
 import threading
 import bencodepy
 
+
 class Tracker:
     DHT_PORT = 6000
-    SELF_PORT = 6000 #Change port for other peers
+    SELF_PORT = 6000  # Change port for other peers
 
     def __init__(self, server, torrent, announce):
         self.server = server
@@ -23,8 +24,6 @@ class Tracker:
         #  'ip_address': '<the ip address of the node>', 'port': '<the port number of the node',
         #  'info_hash': '<the info hash from the torrent file>', last_changed': 'timestamp'}
         self._routing_table = []
-
-
 
     def _get_torrent_info_hash(self):
         """
@@ -56,7 +55,8 @@ class Tracker:
     def broadcast(self, message, self_broadcast_enabled=False):
         try:
             encoded_message = self.encode(message)
-            self.udp_socket.sendto(encoded_message, ('<broadcast>', self.DHT_PORT))
+            self.udp_socket.sendto(
+                encoded_message, ('<broadcast>', self.DHT_PORT))
             print("Message broadcast.....")
         except socket.error as error:
             print(error)
@@ -78,7 +78,8 @@ class Tracker:
                     data = self.decode(raw_data)
                     ip_sender = sender_ip_and_port[0]
                     port_sender = sender_ip_and_port[1]
-                    print("data received by sender", data, ip_sender, port_sender)
+                    print("data received by sender",
+                          data, ip_sender, port_sender)
                     if not self.announce:
                         self.process_query(data, ip_sender, port_sender)
 
@@ -96,9 +97,17 @@ class Tracker:
         # Response = {"t": "aa", "y": "r", "r": {"id": "mnopqrstuvwxyz123456"}}
         if query == "ping":
             print("ping Query: \n" + str(data) + "\n")
-            r = {"id": self.encode(self._server.host)}
+            # r = {"id": self.encode(self._server.host)}
             if self.torrent.validate_hash_info(self.decode(data["a"]["id"])):
+                # Harcode ip address to be localhost for testing
+                # self._routing_table = [str(ip_sender) + "/" + str(port_sender)]
+                self._routing_table = [
+                    "127.0.0.1" + "/" + str(self.server.port)]
+                print("Hashed info data matches!...")
+                exit(1)
 
+    def get_DHT(self):
+        return self._routing_table
 
     def encode(self, message):
         # bencodes a message
@@ -138,18 +147,19 @@ class Tracker:
 
     def ping(self, t, y, q, a=None):
         # create the ping dictionary
-        a = {"id": self.encode(self.torrent.info_hash(self.torrent.get_metainfo()))}
+        a = {"id": self.encode(self.torrent.create_info_hash())}
         ping_query = {"t": t, "y": y, "q": q, "a": a}
         # pass the dictionary
         self.broadcast(ping_query, self_broadcast_enabled=True)
         # self.process_response()
 
-    def run(self): # mod if start with broad casr
+    def run(self):  # mod if start with broad casr
         """
         TODO: This function is called from the peer.py to start this tracker
         :return: VOID
         """
         if self.announce:
+            print("Broadcasting to DHT Port...")
             self.ping("aa", "q", "ping")
         else:
             threading.Thread(target=self.broadcast_listerner).start()
