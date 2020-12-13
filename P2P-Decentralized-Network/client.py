@@ -3,32 +3,37 @@
 # Author:           Kevin Nunura and Jose Ortiz
 # Purpose:          CSC645 Assigment #1 TCP socket programming
 # Description:      Template client class. You are free to modify this
-#                   file to meet your own needs. Additionally, you are 
-#                   free to drop this client class, and add yours instead. 
-# Running:          Python 2: python client.py 
+#                   file to meet your own needs. Additionally, you are
+#                   free to drop this client class, and add yours instead.
+# Running:          Python 2: python client.py
 #                   Python 3: python3 client.py
 #
 ########################################################################
 import socket
 import pickle
+from downloader import Downloader
 # from client_helper import ClientHelper
 
 
 class Client(object):
     """
     The client class provides the following functionality:
-    1. Connects to a TCP server 
+    1. Connects to a TCP server
     2. Send serialized data to the server by requests
     3. Retrieves and deserialize data from a TCP server
     """
 
-    def __init__(self):
+    def __init__(self, peer_id, torrent):
         # Creates the client socket
         # AF_INET refers to the address family ipv4.
         # The SOCK_STREAM means connection oriented TCP protocol.
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.client_id = 0
         self.client_name = None
+        self.peer_id = peer_id
+        self.torrent = torrent
+        #first true is for interested, second is for keep alive
+        self.download = Downloader(self.clientSocket, self.peer_id, self.torrent, True, True)
 
     def get_client_id(self):
         return self.client_id

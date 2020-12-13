@@ -1,18 +1,10 @@
-"""
-Lab 8: peer.py
-This file contains a basic template of the Peer class. In this lab, your job
-is to implement all the parts marked as TODO.
-Note that you don´t need to run the code of this lab. The goal of this lab is to see how your logic works, and
-therefore, to make sure that you understood how peers perform the downloading
-and uploading process in the network, and also which challenges you may encounter
-when implementing those functionality.
-"""
 from server import Server  # assumes that your Tracker file is in this folder
 from threading import Thread
 from client import Client
 from tracker import Tracker  # assumes that your Tracker file is in this folder
 from torrent import Torrent  # assumes that your Torrent file is in this folder
 import uuid
+import time
 
 
 class Peer:
@@ -28,7 +20,9 @@ class Peer:
     LEECHER = 'leecher'
     SEEDER = 'seeder'
 
-    def __init__(self, role=SEEDER, server_ip_address='127.0.0.1'):
+    #Seeder, announce=F, role=seeder, port=5000
+    #Leecher, announce=T, role=peer, port=4998
+    def __init__(self, role=PEER, server_ip_address='127.0.0.1'):
         """
         Class constructor
         :param server_ip_address: used when need to use the ip assigned by LAN
@@ -38,7 +32,12 @@ class Peer:
         self.id = uuid.uuid4()  # creates unique id for the peer
         self.role = role
         self.torrent = Torrent("age.torrent") # Commented out from this lab b/c not needed
-        self.tracker = None
+        self.DHT = None
+        self.tracker = self.run_tracker(True)
+        #Server.__init__(self, self.id, self.torrent, server_ip_address, self.SERVER_PORT)
+
+    def get_DHT(self):
+        return self.DHT
 
     def run_server(self):
         """
@@ -52,19 +51,23 @@ class Peer:
         except Exception as error:
             print(error)  # server failed to run
 
-    # def run_tracker(self, announce=True):
-    #     """
-    #     Starts a threaded tracker
-    #     :param announce: True if this is the first announce in this network
-    #     :return: VOID
-    #     """
-    #     try:
-    #         if self.server:
-    #             self.tracker = Tracker(self.server, self.torrent, announce)
-    #             Thread(target=self.tracker.run, daemon=False).start()
-    #             print("Tracker running.....")
-    #     except Exception as error:
-    #         print(error)  # server failed to run
+    def run_tracker(self, announce):
+        """
+        Starts a threaded tracker
+        :param announce: True if this is the first announce in this network
+        :return: VOID
+        """
+        try:
+            if self.server:
+                self.tracker = Tracker(self.server, self.torrent, announce)
+                Thread(target=self.tracker.run, daemon=False).start()
+                # self.tracker.run()
+                while not self.DHT:
+                    self.DHT = self.tracker.get_DHT()
+                    time.sleep(.5)  # optional
+                    # print("Tracker running.....")
+        except Exception as error:
+            print(error)  # server failed to run
 
     def _connect_to_peer(self, client_port_to_bind, peer_ip_address, peer_port):
         """
@@ -99,7 +102,7 @@ class Peer:
               method, and then increment the client´s port range that
               needs to be bind to the next client. Break the loop when the
               port value is greater than the max client port range.
-        :param peers: list of peer´s ip addresses in the network
+        #:param peers: list of peer´s ip addresses in the network
         :return: VOID
         """
         client_port = self.CLIENT_MIN_PORT_RANGE
@@ -115,7 +118,7 @@ class Peer:
                 client_port = client_port + 1
 
 # testing #seeder for server. peer for leecher
-peer = Peer(role='peer')
+peer = Peer()
 print("Peer: " + str(peer.id) + " running its server: ")
 peer.run_server()
 #print("Peer: " + str(peer.id) + " running its clients: ")
@@ -126,8 +129,10 @@ peer.run_server()
 #  Using different machines
 #      1. Run two peers in different machines.
 #      2. Run a peer in this machine.
-if peer.role == peer.LEECHER or peer.role == peer.PEER:
-    peer_ips = ['127.0.0.1/4999', '127.0.0.1/5000']  # this list will be sent by the tracker in your P2P assignment
+
+# if peer.role == peer.LEECHER or peer.role == peer.PEER:
+if peer.role == peer.SEEDER:
+    peer_ips = peer.get_DHT()  # this list will be sent by the tracker in your P2P assignment
     peer.connect(peer_ips)
 
 """ Sample output running this in the same machine """

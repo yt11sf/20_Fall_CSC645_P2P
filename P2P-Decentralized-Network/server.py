@@ -12,14 +12,16 @@
 # from builtins import object
 import socket
 import pickle
-from client_handler import ClientHandler
+from uploader import Uploader
 from threading import Thread
 
 
 class Server(object):
     MAX_NUM_CONN = 10
 
-    def __init__(self, host, port):
+    def __init__(self, host, port, peer_id, torrent):
+        self.peer_id = peer_id
+        self.torrent = torrent
         # create an INET, STREAMing socket
         self.host = host
         self.port = port
@@ -61,10 +63,8 @@ class Server(object):
     def client_handler_thread(self, clientsocket, address):
         client_id = address[1]
         self.send_client_id(clientsocket, client_id)  # clientsocket comes from clienthandler in _accept_clients()
-
-        client_handler = ClientHandler(self, clientsocket, address)
-        self.client_handlers[client_id] = client_handler
-        client_handler.run()
+        upload = Uploader(self.peer_id, self, clientsocket, address, self.torrent)
+        return upload
 
     def get_clients(self):
         return self.client_handlers
