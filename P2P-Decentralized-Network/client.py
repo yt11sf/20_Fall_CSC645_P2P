@@ -1,5 +1,7 @@
 import socket
 import pickle
+
+from message import Message
 from custom_exception import ClientClosedException, ProtocolException
 
 
@@ -13,7 +15,7 @@ class Client(object):
 
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in client.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
 
-    def __init__(self):
+    def __init__(self, id, message):
         """
         Class constractpr
         """
@@ -21,12 +23,14 @@ class Client(object):
         # AF_INET refers to the address family ipv4.
         # The SOCK_STREAM means connection oriented TCP protocol.
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.clientid = 0
+        self.clientid = id
+        self.message = message
 
     def set_info(self):
-        data = self.receive()
-        print(data)
-        self.client_id = data['clientid']  # sets the client id to this client
+        self._send(self.message.handshake)
+        data = self._receive()
+        if self.handle_response(data) == 'status-ok':
+            pass
         print('Your client info is:')
         print("Client ID: " + str(self.client_id))
 
@@ -46,14 +50,14 @@ class Client(object):
             while True:
                 try:
                     #    print('waiting for server')
-                    data = self.receive()
+                    data = self._receive()
                     if not data:
                         break
                     #    print(data)
                     response = self.handle_response(data)
                     # if there is a response
                     if response:
-                        self.send(response)
+                        self._send(response)
                 except ClientClosedException as ex:
                     print(
                         '\n--------------------Client Disconnected---------------------\n')
@@ -79,33 +83,40 @@ class Client(object):
         """
         #    print(data)
         response = {}
-        # going through all the data
-        for header in data['headers']:
-            # if printing message
-            if header['type'] == 'print':
-                self.print_message(header['body'])
-            # if getting input
-            elif header['type'] == 'input':
-                response[header['body']['res-key']
-                         ] = self.get_input(header['body'])
-            # return status
-            elif header['type'] == 'ignore':
-                response = 'ignore'
-            # if closing connection
-            elif header['type'] == 'close':
-                response['client-closed'] = True
-                self.send(response)
-                raise ClientClosedException()
+        # self-defined protocol in TCP project
+        if 'headers' in data:
+            # going through all the data
+            for header in data['headers']:
+                # if printing message
+                if header['type'] == 'print':
+                    self.print_message(header['body'])
+                # if getting input
+                elif header['type'] == 'input':
+                    response[header['body']['res-key']
+                             ] = self.get_input(header['body'])
+                # return status
+                elif header['type'] == 'ignore':
+                    response = 'ignore'
+                # if closing connection
+                elif header['type'] == 'close':
+                    response['client-closed'] = True
+                    self._send(response)
+                    raise ClientClosedException()
+                elif header['type'] == 'status-ok':
+                    return 'status-ok'
+                else:
+                    print(self.ERROR_TEMPLATE.format(
+                        "handle_response()", "ProtocolException", f"Header is wrong: %s" % header))
+                    raise ProtocolException(
+                        'Protocol received from server is invalid')
+            if response:
+                if response != 'ignore':
+                    return response
             else:
-                print(self.ERROR_TEMPLATE.format(
-                    "handle_response()", "ProtocolException", f"Header is wrong: %s" % header))
-                raise ProtocolException(
-                    'Protocol received from server is invalid')
-        if response:
-            if response != 'ignore':
-                return response
+                return {'status': 'ok'}
+        # Bitorrent protocol
         else:
-            return {'status': 'ok'}
+            pass
 
     def print_message(self, body):
         """
@@ -135,16 +146,16 @@ class Client(object):
                 print('\n--->Client Input Invalid<---\n')
         return data
 
-    def send(self, data):
+    def _send(self, data):
         """
         Serializes and then sends data to server
         :param data:
         :return:
         """
         data = pickle.dumps(data)  # serialized data
-        self.clientSocket.send(data)
+        self.clientSocket._send(data)
 
-    def receive(self, MAX_BUFFER_SIZE=4090):
+    def _receive(self, MAX_BUFFER_SIZE=4090):
         """
         Desearializes the data received by the server
         :param MAX_BUFFER_SIZE: Max allowed allocated memory for this data

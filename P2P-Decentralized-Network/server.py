@@ -2,7 +2,6 @@ import socket
 import pickle
 import threading
 
-from message import Message
 from torrent import Torrent
 from uploader import Uploader
 from custom_exception import ProtocolException
@@ -20,7 +19,7 @@ class Server(object):
     TORRENT_PATH = 'age.torrent'
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in server.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
 
-    def __init__(self, server_ip_address="127.0.0.1", server_port=12000):
+    def __init__(self, message, server_ip_address="127.0.0.1", server_port=12000):
         """
         Class constructor
         :param server_ip_address: by default localhost. Note that '0.0.0.0' takes LAN ip address.
@@ -33,7 +32,7 @@ class Server(object):
         self.threadStarted = {}  # DEBUGGING ONLY. keeping track of thread started
         self.lock = threading.Lock()
         self.torrent = Torrent(self.TORRENT_PATH)
-        self.message = Message(-1, self.torrent.create_info_hash())
+        self.message = message
 
     def _bind(self):
         """
@@ -104,8 +103,9 @@ class Server(object):
         peer_id = self.set_client_info(self, clientsocket)
         if peer_id == -1:
             with self.lock:
-                print(
-                    'Connection attempted but failed due to not_interested/choke/different info hash')
+                print(self.ERROR_TEMPLATE.format(
+                    "client_handler_thread()", "ProtocolException",
+                    "Connection attempt fail due to not_interested/choke/different info hash"))
             return
 
         client_handler = Uploader(
@@ -124,12 +124,19 @@ class Server(object):
         peer_id = handshake['peer_id']
         # info hash is different
         if not self.torrent.validate_hash_info(info_hash):
-            self._send(clientsocket, {'status': 'not ok',
-                                      'message': 'different info hash'})
+            self._send(clientsocket, {'headers': [
+                {
+                    'type': 'print',
+                    'body': {'message': 'Different info hash'}
+                },
+                {'type': 'close'}
+            ]})
+            self._receive(clientsocket)
             raise Exception('Received different info_hash')
-        self._send(clientsocket, {'status': 'ok'})
+        # info hash is valid
+        self._send(clientsocket, {'headers': [{'type': 'status-ok'}]})
         interested = self._receive(clientsocket)
-        # interested? {'len': b'0001', 'id': 2} : {'len': b'0001', 'id': 3}
+        # interested
         if interested['id'] == 2:
             # too many parallel connection
             if len(self.clienthandlers) >= self.MAX_NUM_CONN:
@@ -137,10 +144,23 @@ class Server(object):
                 return -1
             else:
                 self._send(clientsocket, self.message.unchoke)
+                self._receive(clientsocket)
+                self._send(clientsocket, {'headers': [{'type': 'close'}]})
+                self._receive(clientsocket)
                 return peer_id
+        # not interested
         elif interested['id'] == 3:
             return -1
-        else:   # message invalid
+        # message invalid
+        else:
+            self._send(clientsocket, {'headers': [
+                {
+                    'type': 'print',
+                    'body': {'message': 'Message invalid'}
+                },
+                {'type': 'close'}
+            ]})
+            self._receive(clientsocket)
             with self.lock:
                 print(self.ERROR_TEMPLATE.format(
                     "set_client_info()", "ProtocolException",

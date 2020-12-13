@@ -1,5 +1,6 @@
 from server import Server  # assumes that your Tracker file is in this folder
 from client import Client
+from message import Message
 from tracker import Tracker  # assumes that your Tracker file is in this folder
 from torrent import Torrent  # assumes that your Torrent file is in this folder
 
@@ -31,12 +32,14 @@ class Peer:
         Class constructor
         :param server_ip_address: used when need to use the ip assigned by LAN
         """
-        self.server = Server(
-            server_ip_address, self.SERVER_PORT)  # inherits methods from the server
+        self.torrent = Torrent(self.TORRENT_PATH)
+        self.message = Message(self.id, self.torrent.create_info_hash())
+        self.server = Server(message=self.message,
+                             server_ip_address=server_ip_address,
+                             server_port=self.SERVER_PORT)
         self.server_ip_address = server_ip_address
         self.id = uuid.uuid4()  # creates unique id for the peer
         self.role = role
-        self.torrent = Torrent(self.TORRENT_PATH)
         # Commented out from this lab b/c not needed
         self.DHT = None
         self.tracker = self.run_tracker(True)
@@ -90,7 +93,7 @@ class Peer:
         :return: VOID
         """
         print('Trying ', peer_ip_address, '/', client_port_to_bind)
-        client = Client()
+        client = Client(id=self.id, message=self.message)
         try:
             client.bind('0.0.0.0', client_port_to_bind)
             # must thread the client too, otherwise it will block the main thread
