@@ -11,12 +11,12 @@ class Tracker:
         self.server = server
         self.torrent = torrent
         self.announce = announce
-        if self.announce:
-            self.SELF_PORT = 12006
+        if not self.announce:
+            self.DHT_PORT = 12006
         self.torrent_info_hash = self._get_torrent_info_hash()
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.udp_socket.bind(("", self.SELF_PORT))
+        self.udp_socket.bind(("", self.DHT_PORT))
         # will story a list of dictionaries representing entries in the routing table
         # dictionaries stored here are in the following form
         # {'nodeID': '<the node id is a SHA1 hash of the ip_address and port of the server node and a random uuid>',
@@ -78,7 +78,7 @@ class Tracker:
                     data = self.decode(raw_data)
                     ip_sender = sender_ip_and_port[0]
                     port_sender = sender_ip_and_port[1]
-                    # print("data received by sender", data, ip_sender, port_sender)
+                    print("data received by sender", data, ip_sender, port_sender)
                     if not self.announce:
                         self.process_query(data, ip_sender, port_sender)
 
@@ -96,15 +96,9 @@ class Tracker:
         # Response = {"t": "aa", "y": "r", "r": {"id": "mnopqrstuvwxyz123456"}}
         if query == "ping":
             print("ping Query: \n" + str(data) + "\n")
-            # r = {"id": self.encode(self._server.host)}
+            r = {"id": self.encode(self._server.host)}
             if self.torrent.validate_hash_info(self.decode(data["a"]["id"])):
-                # self._routing_table = [str(ip_sender) + "/" + str(port_sender)]
-                self._routing_table = ["127.0.0.1" + "/" + str(self.server.port)] #Harcode ip address to be localhost for testing
-                print("Hashed info data matches!...")
-                exit(1)
 
-    def get_DHT(self):
-        return self._routing_table
 
     def encode(self, message):
         # bencodes a message
@@ -144,7 +138,7 @@ class Tracker:
 
     def ping(self, t, y, q, a=None):
         # create the ping dictionary
-        a = {"id": self.encode(self.torrent.create_info_hash())}
+        a = {"id": self.encode(self.torrent.info_hash(self.torrent.get_metainfo()))}
         ping_query = {"t": t, "y": y, "q": q, "a": a}
         # pass the dictionary
         self.broadcast(ping_query, self_broadcast_enabled=True)
@@ -156,9 +150,6 @@ class Tracker:
         :return: VOID
         """
         if self.announce:
-            print("Broadcasting to DHT Port...")
             self.ping("aa", "q", "ping")
         else:
             threading.Thread(target=self.broadcast_listerner).start()
-
-

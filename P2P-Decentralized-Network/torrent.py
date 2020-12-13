@@ -3,13 +3,13 @@ from config import Config
 
 import hashlib
 
+
 class Torrent:
 
     def __init__(self, torrent_path):
         self.torrent_path = torrent_path
         self.torrent_data = tp.parse_torrent_file(torrent_path)
         self.config = Config()
-
 
     def _hash_torrent_info(self, torrent_info):
         """
@@ -74,7 +74,7 @@ class Torrent:
         return self.torrent_data['info']['piece length']
 
     def validate_hash_info(self, info_hash):
-        return self.create_info_hash() == info_hash
+        return self.info_hash() == info_hash
 
     def path_to_temp(self):
         torrent_path = self.torrent_path

@@ -1,5 +1,4 @@
 import pickle
-from pwp import PWP
 from file_manager import FileManager
 from config import Config
 
@@ -11,10 +10,9 @@ class Uploader:
         self.config = Config()
         self.torrent = torrent
         self.file_manager = FileManager(peer_id=peer_id, torrent=torrent)
-        self.peer_uploader = peer_uploader
+        self.peer_uploader = peer_uploader  # aka client socket
         self.server = server
         self.address = address
-        self.pwp = PWP()
         self.peer_id = -1
         self.uploaded = 0  # bytes
         self.downloaded = 0  # bytes
