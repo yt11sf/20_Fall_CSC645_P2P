@@ -135,18 +135,22 @@ class Server(object):
             self._receive(clientsocket)
             raise Exception('Received different info_hash')
         # info hash is valid
-        self._send(clientsocket, {'headers': [{'type': 'status-ok'}]})
+        self._send(clientsocket, {'headers': [{'type': 'ignore'}]})
         interested = self._receive(clientsocket)
         # interested
         if interested['id'] == 2:
             # too many parallel connection
             if len(self.clienthandlers) >= self.MAX_NUM_CONN:
-                self._send(clientsocket, self.message.choke)
+                self._send(clientsocket, {'headers': [
+                    {
+                        'type': 'bittorrent',
+                        'body': self.message.choke
+                    },
+                    {'type': 'close'}
+                ]})
                 return -1
             else:
                 self._send(clientsocket, self.message.unchoke)
-                self._receive(clientsocket)
-                self._send(clientsocket, {'headers': [{'type': 'close'}]})
                 self._receive(clientsocket)
                 return peer_id
         # not interested

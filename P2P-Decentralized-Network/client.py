@@ -29,10 +29,14 @@ class Client(object):
         self.message = message
 
     def set_info(self):
+        # sending handshake
         self._send(self.message.handshake)
         data = self._receive()
-        if self.handle_response(data) == 'status-ok':
-            pass
+        # server accepted connection
+        self.handle_response(data)
+        # sending interested
+        self._send(self.message.interested)
+
         print('Your client info is:')
         print("Client ID: " + str(self.client_id))
 
@@ -85,40 +89,39 @@ class Client(object):
         """
         #    print(data)
         response = {}
-        # self-defined protocol in TCP project
-        if 'headers' in data:
-            # going through all the data
-            for header in data['headers']:
-                # if printing message
-                if header['type'] == 'print':
-                    self.print_message(header['body'])
-                # if getting input
-                elif header['type'] == 'input':
-                    response[header['body']['res-key']
-                             ] = self.get_input(header['body'])
-                # return status
-                elif header['type'] == 'ignore':
-                    response = 'ignore'
-                # if closing connection
-                elif header['type'] == 'close':
-                    response['client-closed'] = True
-                    self._send(response)
-                    raise ClientClosedException()
-                elif header['type'] == 'status-ok':
-                    return 'status-ok'
-                else:
-                    print(self.ERROR_TEMPLATE.format(
-                        "handle_response()", "ProtocolException", f"Header is wrong: %s" % header))
-                    raise ProtocolException(
-                        'Protocol received from server is invalid')
-            if response:
-                if response != 'ignore':
-                    return response
+        # going through all the data
+        for header in data['headers']:
+            # if printing message
+            if header['type'] == 'print':
+                self.print_message(header['body'])
+            # if getting input
+            elif header['type'] == 'input':
+                response[header['body']['res-key']
+                         ] = self.get_input(header['body'])
+            # return status
+            elif header['type'] == 'ignore':
+                response = 'ignore'
+            # if closing connection
+            elif header['type'] == 'close':
+                response['client-closed'] = True
+                self._send(response)
+                raise ClientClosedException()
+            # handle bit torrent protocol
+            elif header['type'] == 'bittorrent':
+                response['bittorrent'] = self.handle_bt_protocol(
+                    header['body'])
             else:
-                return {'status': 'ok'}
-        # Bitorrent protocol
+                print(self.ERROR_TEMPLATE.format(
+                    "handle_response()", "ProtocolException", f"Header is wrong: %s" % header))
+                raise ProtocolException(
+                    'Protocol received from server is invalid')
+        if response:
+            if response != 'ignore':
+                if 'bittorrent' in response and response['bittorrent'] == 'ignore':
+                    response.pop('bittorrent')
+                return response
         else:
-            pass
+            return {'status': 'ok'}
 
     def print_message(self, body):
         """
@@ -147,6 +150,47 @@ class Client(object):
             except:
                 print('\n--->Client Input Invalid<---\n')
         return data
+
+    def handle_bt_protocol(self, body):
+        """
+        * This may be move to the downloader
+        This function handle the bit torrent protocol
+        :body: body of a bit torrent header
+        """
+        response = ''
+        if 'id' in body:
+            # choke
+            if body['id'] == 0:
+                print('Server Choked: closing connection...')
+                response = 'ignore'
+            # unchoke
+            elif body['id'] == 1:
+                print('Server is not choked')
+                response = 'ignore'
+            # interested
+            elif body['id'] == 2:
+                pass
+            # not_interested
+            elif body['id'] == 3:
+                pass
+            # h ave
+            elif body['id'] == 4:
+                pass
+            elif body['id'] == 5:
+                pass
+            elif body['id'] == 6:
+                pass
+            elif body['id'] == 7:
+                pass
+            elif body['id'] == 8:
+                pass
+            elif body['id'] == 9:
+                pass
+        # message.keep_alive/tracker/handshake
+        else:
+            pass
+
+        return response
 
     def _send(self, data):
         """
