@@ -10,7 +10,6 @@ class Torrent:
         self.torrent_data = tp.parse_torrent_file(torrent_path)
         self.config = Config()
 
-
     def _hash_torrent_info(self, torrent_info):
         """
         Hash the torrent info from the meta-info in the torrent file.

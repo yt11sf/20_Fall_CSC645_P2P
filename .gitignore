@@ -3,3 +3,6 @@ __pycache__/
 .cpy
 cache/
 env/
+notes.txt
+test.py
+.idea/

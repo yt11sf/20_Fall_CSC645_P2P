@@ -10,7 +10,7 @@ class Uploader:
         self.config = Config()
         self.torrent = torrent
         self.file_manager = FileManager(peer_id=peer_id, torrent=torrent)
-        self.peer_uploader = peer_uploader
+        self.peer_uploader = peer_uploader  # aka client socket
         self.server = server
         self.address = address
         self.peer_id = -1

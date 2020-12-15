@@ -253,3 +253,12 @@ class Message:
         :return: VOID
         """
         self._bitfield['bitfield'][piece_index][block_index] = b'1'
+
+    def get_tracker_with_ip_port(self, ip, port):
+        '''
+        Retrieve tracker with ip and port set
+        This was created because message instance is shared between multiple instances
+        '''
+        self.tracker["ip"] = ip
+        self.tracker["port"] = port
+        return self.tracker
