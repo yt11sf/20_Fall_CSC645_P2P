@@ -43,6 +43,7 @@ class Peer:
         # Commented out from this lab b/c not needed
         self.DHT = None
         self.tracker = self.run_tracker(True)
+        #Server.__init__(self, self.id, self.torrent, server_ip_address, self.SERVER_PORT)
 
     def get_DHT(self):
         return self.DHT
@@ -99,7 +100,7 @@ class Peer:
             # must thread the client too, otherwise it will block the main thread
             Thread(target=client.connect, args=(
                 peer_ip_address, peer_port)).start()
-            print("Server started.........")
+            print("Client started.........")
             return True
             # ! Need to run downloader
             # ! Either create a run method in client, or do it here

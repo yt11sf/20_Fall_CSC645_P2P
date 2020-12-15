@@ -19,7 +19,7 @@ class Server(object):
     TORRENT_PATH = 'age.torrent'
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in server.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
 
-    def __init__(self, message, server_ip_address="127.0.0.1", server_port=12000):
+    def __init__(self,  peer_id, torrent, message, server_ip_address="127.0.0.1", server_port=12000):
         """
         Class constructor
         :param server_ip_address: by default localhost. Note that '0.0.0.0' takes LAN ip address.
@@ -31,7 +31,8 @@ class Server(object):
         self.clienthandlers = {}  # a list of uploaders
         self.threadStarted = {}  # DEBUGGING ONLY. keeping track of thread started
         self.lock = threading.Lock()
-        self.torrent = Torrent(self.TORRENT_PATH)
+        self.peer_id = peer_id
+        self.torrent = torrent
         self.message = message
 
     def _bind(self):
@@ -112,7 +113,7 @@ class Server(object):
             peer_id, self, clientsocket, addr, self.torrent)
         return client_handler
 
-    def set_client_info(self, clientsocket):
+      def set_client_info(self, clientsocket):
         """
         Communicate with downloader to determine whether connection is neccessary
         :param clientsocket:

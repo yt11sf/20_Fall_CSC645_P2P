@@ -1,4 +1,5 @@
 from server import Server
+
 import socket
 import threading
 import bencodepy
@@ -82,10 +83,9 @@ class Tracker:
                           data, ip_sender, port_sender)
                     if not self.announce:
                         self.process_query(data, ip_sender, port_sender)
-
         except:
             print("Error listening at DHT port")
-
+            
     def process_query(self, data, ip_sender, port_sender):
         """
         TODO: process an incoming query from a node
@@ -105,7 +105,7 @@ class Tracker:
                     "127.0.0.1" + "/" + str(self.server.port)]
                 print("Hashed info data matches!...")
                 exit(1)
-
+ 
     def get_DHT(self):
         return self._routing_table
 

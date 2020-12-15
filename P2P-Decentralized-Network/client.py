@@ -8,22 +8,23 @@ from custom_exception import ClientClosedException, ProtocolException
 class Client(object):
     """
     The client class provides the following functionality:
-    1. Connects to a TCP server 
+    1. Connects to a TCP server
     2. Send serialized data to the server by requests
     3. Retrieves and deserialize data from a TCP server
     """
 
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in client.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
-
-    def __init__(self, id, message):
-        """
-        Class constractpr
-        """
+    
+    def __init__(self, peer_id, torrent, message):
         # Creates the client socket
         # AF_INET refers to the address family ipv4.
         # The SOCK_STREAM means connection oriented TCP protocol.
         self.clientSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.clientid = id
+        self.client_id = 0
+        self.peer_id = peer_id
+        self.torrent = torrent
+        #first true is for interested, second is for keep alive
+        self.download = Downloader(self.clientSocket, self.peer_id, self.torrent, True, True)
         self.message = message
 
     def set_info(self):
