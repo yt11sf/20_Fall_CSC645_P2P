@@ -155,7 +155,7 @@ if __name__ == '__main__':
         peer_ips = peer.get_DHT()
         peer.connect(peer_ips)
 
-     """ Sample output running this in the same machine """
+    """ Sample output running this in the same machine """
     # Peer: 6d223864-9cd7-4327-ad02-7856d636af66 running its server:
     # Listening for new peers at 127.0.0.1/5000
     # Peer: 6d223864-9cd7-4327-ad02-7856d636af66 running its clients:

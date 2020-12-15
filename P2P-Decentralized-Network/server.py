@@ -113,7 +113,7 @@ class Server(object):
             peer_id, self, clientsocket, addr, self.torrent)
         return client_handler
 
-      def set_client_info(self, clientsocket):
+    def set_client_info(self, clientsocket):
         """
         Communicate with downloader to determine whether connection is neccessary
         :param clientsocket:

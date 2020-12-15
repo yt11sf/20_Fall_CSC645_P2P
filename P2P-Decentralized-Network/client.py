@@ -1,7 +1,7 @@
 import socket
 import pickle
 
-from message import Message
+from downloader import Downloader
 from custom_exception import ClientClosedException, ProtocolException
 
 
@@ -14,7 +14,7 @@ class Client(object):
     """
 
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in client.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
-    
+
     def __init__(self, peer_id, torrent, message):
         # Creates the client socket
         # AF_INET refers to the address family ipv4.
@@ -23,8 +23,9 @@ class Client(object):
         self.client_id = 0
         self.peer_id = peer_id
         self.torrent = torrent
-        #first true is for interested, second is for keep alive
-        self.download = Downloader(self.clientSocket, self.peer_id, self.torrent, True, True)
+        # first true is for interested, second is for keep alive
+        self.download = Downloader(
+            self.clientSocket, self.peer_id, self.torrent, True, True)
         self.message = message
 
     def set_info(self):
