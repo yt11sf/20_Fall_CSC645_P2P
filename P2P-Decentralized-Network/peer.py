@@ -32,16 +32,20 @@ class Peer:
         Class constructor
         :param server_ip_address: used when need to use the ip assigned by LAN
         """
-        self.torrent = Torrent(self.TORRENT_PATH)
-        self.message = Message(self.id, self.torrent.create_info_hash())
-        self.server = Server(message=self.message,
-                             server_ip_address=server_ip_address,
-                             server_port=self.SERVER_PORT)
         self.server_ip_address = server_ip_address
         self.id = uuid.uuid4()  # creates unique id for the peer
         self.role = role
         # Commented out from this lab b/c not needed
         self.DHT = None
+        self.torrent = Torrent(self.TORRENT_PATH)
+        self.message = Message(self.id, self.torrent.create_info_hash())
+        # peer_id, torrent, message, server_ip_address="127.0.0.1", server_port=12000
+        self.server = Server(
+            peer_id=self.id,
+            torrent=self.torrent,
+            message=self.message,
+            server_ip_address=server_ip_address,
+            server_port=self.SERVER_PORT)
         self.tracker = self.run_tracker(True)
         #Server.__init__(self, self.id, self.torrent, server_ip_address, self.SERVER_PORT)
 
