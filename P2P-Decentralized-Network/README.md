@@ -2,12 +2,20 @@
 
 Please use this README file to provide the following documentation for this project:
 
-* Your name and student id
-* General description of the project (a few sentences)
-* If you used external Python modules/libraries. Provide a requirements.txt file  
-* Python version and compatibility issues (if any)
+### Team Member:
+1. Yee Jian Tan 920115752
+2. Kevin Nunura
+3. Brad Peraza
+4. Peter Hu
+
+### General Description:
+* Connection between peer is established. Communication protocol is in progress. We have no success in transfering files.
+
+### How To Run:
 * Clear and specific instructions about how to run your project. If your project does not run or contains errors, you'll get a 0 in the project no matter how much work you put on it. So, test your code properly and make sure that it runs without errors.
-* A few sentences about all the challenges you found during the implementation of this project and how you overcame them. Please be honest here. 
+### Challenges:
+* Works have overlapped and caused confusion.
+
 
 ## Note that failure to provide the above docs will result in a 30% deduction in your final grade for this project. 
 

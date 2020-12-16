@@ -137,7 +137,7 @@ class Peer:
 
 if __name__ == '__main__':
     role = input('Enter role: ') or 'peer'  # ! testing
-    server_ip_address = input('Enter peer port: ') or '127.0.0.1'  # ! testing
+    server_ip_address = input('Enter peer ip: ') or '127.0.0.1'  # ! testing
     # testing
     peer = Peer(role=role, server_ip_address=server_ip_address)
 
