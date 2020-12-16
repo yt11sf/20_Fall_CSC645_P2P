@@ -78,10 +78,11 @@ class Peer:
                 self.tracker = Tracker(
                     self.server, self.torrent, announce=announce, DHT_PORT=self.DHT_PORT)
                 Thread(target=self.tracker.run, daemon=False).start()
+                print("Tracker running.....")
                 while not self.DHT:
                     dht = self.tracker.get_DHT()
                     time.sleep(.5)  # optional
-                print("Tracker running.....")
+                print("DHT obtained")
                 # {info_hash: [(response_time, (ip_address, port))]}
                 info_hash = self.torrent.create_info_hash()
                 peers_ip_port = [dht[info_hash][x][1]

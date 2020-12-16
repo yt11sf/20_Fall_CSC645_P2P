@@ -16,6 +16,9 @@ class Tracker:
     This class contains methods that provide implementations to support trackerless peers
     supporting the DHT and KRPC protocols
     """
+
+    ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in tracker.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
+
     DHT_PORT = 12001
     MAX_BUFFERSIZE = 4096
 
@@ -33,6 +36,7 @@ class Tracker:
         self.id = None
         self.ip_address = None
         self.DHT_PORT = DHT_PORT
+        self.seeder_port = 12001
         self.udpsocket = None
         self._set_udpsocket()
         '''        
@@ -69,14 +73,17 @@ class Tracker:
 
     def broadcast(self, message, broadcast_enable=False):
         try:
-            print('Broadcasting message from',
-                  socket.gethostbyname(socket.gethostname()), ': ', message)
+            # print('Broadcasting message from',
+            #      socket.gethostbyname(socket.gethostname()), ': ', message)
             encoded_message = self.encode(message)
             self.udpsocket.sendto(
-                encoded_message, ('<broadcast>', self.DHT_PORT))
+                encoded_message, ('<broadcast>', self.seeder_port))
+        except socket.error as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "broadcast()", type(ex).__name__, ex.args))
         except Exception as ex:
-            print('Tracker broadcast error')
-            print(ex)
+            print(self.ERROR_TEMPLATE.format(
+                "broadcast()", type(ex).__name__, ex.args))
 
     def broadcast_listener(self):
         try:
@@ -89,40 +96,34 @@ class Tracker:
                     # ! close VPN
                     # print(socket.gethostbyname(socket.gethostname()))
                     # print(sender_ip_port)
-                    if sender_ip_port[0] != self.ip_address:
-                        print(f'Received data from %s: %s' %
-                              (sender_ip_port, data))
-                        # processing query
-                        # this is suppose to only handle query that is broadcasted
-                        # which is ping only?
-                        self.process_all(data)
+                    # if sender_ip_port[0] != self.ip_address:
+                    print(f'Received data from %s: %s' %
+                          (sender_ip_port, data))
+                    # processing query
+                    # this is suppose to only handle query that is broadcasted
+                    # which is ping only?
+                    self.process_all(data)
 
                     # ! Debug self message
-                    else:
-                        print('The sender receive its own message: ', data)
+                    # else:
+                    #    print('The sender receive its own message: ', data)
                 else:
                     break
         except Exception as ex:
-            print('Tracker broadcast listener error')
-            print(ex)
+            print(self.ERROR_TEMPLATE.format(
+                "broadcast_listerner()", type(ex).__name__, ex.args))
 
     def encode(self, message):
-        """
-        bencodes a message
-        :param message: a dictionary representing the message
-        :return: the bencoded message
-        """
+        # bencodes a message
         return bencodepy.encode(message)
 
-    def decode(self, bencoded_data):
-        """
-        Decodes a bencoded data
-        :param bencoded_data: the bencoded message
-        :return: decoded_data
-        """
-        decoded_data = self._decode_utf8(bencodepy.decode(bencoded_data))
-        return decoded_data
+    def decode(self, bencoded_message):
+        # decodes a bencode message
+        bc = bencodepy.Bencode(encoding='utf-8')
+        return bc.decode(bencoded_message)
 
+    '''
+    * Deprecated
     def _decode_utf8(self, encoded_data):
         """
         Decodes a utf-8 encoded data
@@ -139,7 +140,7 @@ class Tracker:
                 return decoded_dict
             elif type(encoded_data) == str:
                 return encoded_data
-            elif type(encoded_data) == int:
+            elif type(encoded_data) == int or type(encoded_data) == float:
                 return encoded_data
             elif type(encoded_data) == tuple:
                 if len(encoded_data) == 1:
@@ -153,6 +154,7 @@ class Tracker:
         except Exception as ex:
             print('_decode_utf8 unsuccessful: ', encoded_data)
             print(ex)
+    '''
 
     def _generate_tokens(self, ip_address):
         '''
@@ -178,8 +180,16 @@ class Tracker:
         Getting the sender ip_address and port from data
         :return: tuple of ip_address and port
         '''
-        return (data['a']['id']['ip_address'],
-                data['a']['id']['port'])
+        if 'a' in data:
+            return (data['a']['id']['ip_address'],
+                    data['a']['id']['port'])
+        elif 'r' in data:
+            return (data['r']['id']['ip_address'],
+                    data['r']['id']['port'])
+        else:
+            print(self.ERROR_TEMPLATE.format(
+                "_get_sender_addr()", 'data invalid', data))
+            return None
 
     def ping(self, t):
         """
@@ -197,7 +207,7 @@ class Tracker:
             "y": "q",
             "q": "ping",
             "a": {"id": self.id},
-            "time": time.time()
+            "time": str(time.time())
         }
         self.broadcast(data)
 
@@ -215,11 +225,11 @@ class Tracker:
             "y": "r",
             "q": "ping",  # tell receiver this is a response of ping
             "r":  {"id": self.id},
-            "res_time": time.time() - sender_time
+            "res_time": str(time.time() - float(sender_time))
         }
         self.send_response(response, sender_addr)
 
-    def find_node(self, t, target_info_hash):
+    def find_node(self, t, target_info_hash, sender_addr):
         """
         TODO: implement the find_node method
         :param t: transaction id
@@ -235,9 +245,9 @@ class Tracker:
                 "id": self.id,
                 "target": target_info_hash
             },
-            "time": time.time()
+            "time": str(time.time())
         }
-        self.send_response(data)
+        self.send_response(data, sender_addr)
 
     def _response_find_node(self, t, target_info_hash, sender_time, sender_addr):
         '''
@@ -251,7 +261,7 @@ class Tracker:
                 "y": "r",
                 "q": "find_node",
                 "r": {"id": self.id},
-                "res_time": time.time() - sender_time
+                "res_time": str(time.time() - float(sender_time))
             }
             self.send_response(data, sender_addr)
 
@@ -272,7 +282,7 @@ class Tracker:
             "y": "q",
             "q": "get_peers",
             "a": {"id": self.id},
-            "time": time.time()
+            "time": str(time.time())
         }
         self.send_response(data, sender_addr)
 
@@ -293,8 +303,11 @@ class Tracker:
             bencoded = d1:rd2:id20:abcdefghij01234567895:
                 nodes9:def456...5:token8:aoeusnthe1:t2:aa1:y1:re
         '''
-        values = self._routing_table[info_hash][1] \
-            if info_hash in self._routing_table else []
+        values = []
+        if info_hash in self._routing_table:
+            values.extend([self._routing_table[info_hash][x][1]
+                           for x in range(len(self._routing_table[info_hash])-1)])
+        #values.append((self.ip_address, self.DHT_PORT))
         data = {
             "t": t,
             "y": "r",
@@ -305,7 +318,7 @@ class Tracker:
                 "token": self._generate_tokens(sender_addr[0]),
                 "values": values,
             },
-            "res_time": time.time() - sender_time
+            "res_time": str(time.time() - float(sender_time))
         }
         self.send_response(data, sender_addr)
 
@@ -336,7 +349,7 @@ class Tracker:
                 "port": port,
                 "token": token
             },
-            "time": time.time()
+            "time": str(time.time())
         }
         self.send_response(data, sender_addr)
 
@@ -357,7 +370,7 @@ class Tracker:
             "r": {
                 "id": self.id,
             },
-            "res_time": sender_time - time.time()
+            "res_time": str(float(sender_time) - time.time())
         }
         self.send_response(data, sender_addr)
 
@@ -365,89 +378,108 @@ class Tracker:
         '''
         Process all communication coming through
         '''
-        if data['y'] == 'q':
-            self.process_query(data)
-        elif data['y'] == 'r':
-            self.process_response(data)
-        elif data['y'] == 'e':
-            print('Response Error')
+        try:
+            if data['y'] == 'q':
+                self.process_query(data)
+            elif data['y'] == 'r':
+                self.process_response(data)
+            elif data['y'] == 'e':
+                print('Response Error')
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "process_all()", type(ex).__name__, ex.args))
 
     def process_query(self, data):
         """
         TODO: process an incoming query from a node
         :return: the response
         """
-        sender_addr = self._get_sender_addr(data)
-        if data['q'] == 'ping':
-            self._add_node(data['a']['id']['info_hash'],
-                           time.time()-data['time'],
-                           sender_addr)
-            self._response_ping(data['t'],
-                                data['time'],
-                                sender_addr)
-        elif data['q'] == 'find_node':
-            self._response_find_node(data['t'],
-                                     data['a']['id']['info_hash'],
-                                     data['time'],
-                                     sender_addr)
-        elif data['q'] == 'get_peers':
-            self._response_get_peers(data['t'],
-                                     data['a']['id']['info_hash'],
-                                     data['time'],
-                                     sender_addr)
-        elif data['q'] == 'announce_peers':
-            self._response_announce_peers(data['t'],
-                                          data['time'],
-                                          sender_addr)
+        try:
+            sender_addr = self._get_sender_addr(data)
+            if data['q'] == 'ping':
+                self._add_node(data['a']['id']['info_hash'],
+                               str(time.time()-float(data['time'])),
+                               sender_addr)
+                self._response_ping(data['t'],
+                                    data['time'],
+                                    sender_addr)
+            elif data['q'] == 'find_node':
+                self._response_find_node(data['t'],
+                                         data['a']['id']['info_hash'],
+                                         data['time'],
+                                         sender_addr)
+            elif data['q'] == 'get_peers':
+                self._response_get_peers(data['t'],
+                                         data['a']['id']['info_hash'],
+                                         data['time'],
+                                         sender_addr)
+            elif data['q'] == 'announce_peers':
+                self._response_announce_peers(data['t'],
+                                              data['time'],
+                                              sender_addr)
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "process_query()", type(ex).__name__, ex.args))
 
     def process_response(self, data):
         '''
         Process response from nodes
         '''
-        sender_addr = self._get_sender_addr(data)
-        if data['q'] == 'ping':
-            self._add_node(data['r']['id']['info_hash'],
-                           data['res_time'],
-                           sender_addr)
-            self.get_peers(data['t'], sender_addr)
-        elif data['q'] == 'find_node':
-            self.exp_num_of_res -= 1
-            # select the 8 fastest response to add to routing table
-            # if less than 8 nodes, add node
-            if len(self._routing_table['info_hash']) < 8:
-                self._add_node(self.id['info_hash'],
+        try:
+            sender_addr = self._get_sender_addr(data)
+            if data['q'] == 'ping':
+                self._add_node(data['r']['id']['info_hash'],
                                data['res_time'],
                                sender_addr)
-            else:
-                # select the node that take the most time to response
-                max_res_time_node = max(
-                    self._routing_table['info_hash'], key=lambda v: v[0])
-                # if that node take more time than this node
-                if max_res_time_node[0] > data['res_time']:
-                    # remove that node and add this node
-                    self._routing_table['info_hash'].remove(max_res_time_node)
-                    self._add_node(data['r']['id']['info_hash'],
+                self.get_peers(data['t'], sender_addr)
+            elif data['q'] == 'find_node':
+                self.exp_num_of_res -= 1
+                # select the 8 fastest response to add to routing table
+                # if less than 8 nodes, add node
+                if len(self._routing_table[self.id['info_hash']]) < 8:
+                    self._add_node(self.id['info_hash'],
                                    data['res_time'],
                                    sender_addr)
-            # if every get_peers response has been processed
-            if self.exp_num_of_res == 0:
-                # announce_peer to every node remained in routing table
-                for _, node in self._routing_table['info_hash']:
-                    # ! hardcoded for now, use UDP port
-                    self.announce_peers(
-                        data['t'], 1, self.DHT_PORT, self.token, node)
-        elif data['q'] == 'get_peers':
-            self.token = data['r']['token']
-            # for every node in get_peers response
-            for v in data['r']['values']:
-                # if it is not already explored
-                if v not in self.explored_nodes:
-                    # record it and send find_node request
-                    self.explored_nodes.append(v)
-                    self.exp_num_of_res += 1
-                    self.find_node(data['t'], self.id['info_hash'])
-        elif data['q'] == 'announce_peers':
-            print('received announce peer response')
+                else:
+                    # select the node that take the most time to response
+                    max_res_time_node = max(
+                        self._routing_table[self.id['info_hash']], key=lambda v: v[0])
+                    # if that node take more time than this node
+                    if max_res_time_node[0] > data['res_time']:
+                        # remove that node and add this node
+                        self._routing_table[self.id['info_hash']].remove(
+                            max_res_time_node)
+                        self._add_node(data['r']['id']['info_hash'],
+                                       data['res_time'],
+                                       sender_addr)
+                # if every get_peers response has been processed
+                if self.exp_num_of_res == 0:
+                    # announce_peer to every node remained in routing table
+                    for _, node in self._routing_table['info_hash']:
+                        # ! hardcoded for now, use UDP port
+                        self.announce_peers(
+                            data['t'], 1, self.DHT_PORT, self.token, node)
+            elif data['q'] == 'get_peers':
+                self.token = data['r']['token']
+                # for every node in get_peers response
+                for v in data['r']['values']:
+                    # if it is not already explored
+                    if v not in self.explored_nodes:
+                        # record it and send find_node request
+                        self.explored_nodes.append(v)
+                        self.exp_num_of_res += 1
+                        self._add_node(data['r']['id']['info_hash'],
+                                       data['res_time'],
+                                       sender_addr)
+                for p in self._routing_table[self.id['info_hash']]:
+                    # print(p)
+                    self.find_node(
+                        data['t'], self.id['info_hash'], p[1])
+            elif data['q'] == 'announce_peers':
+                print('received announce peer response')
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "process_response()", type(ex).__name__, ex.args))
 
     def send_response(self, data, sender_addr):
         """
@@ -455,8 +487,8 @@ class Tracker:
         :return:
         """
         try:
-            print('Send response from ', socket.gethostbyname(socket.gethostname()),
-                  ' to ', sender_addr, ': ', data)
+            # print('Send response from ', socket.gethostbyname(socket.gethostname()),
+            #      ' to ', sender_addr, ': ', data)
             encoded_data = self.encode(data)
             new_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             new_socket.sendto(encoded_data, sender_addr)
@@ -470,8 +502,13 @@ class Tracker:
         TODO: This function is called from the peer.py to start this tracker
         :return: VOID
         """
-        if self._is_announce:
+        try:
             Thread(target=self.broadcast_listener).start()
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "run()", type(ex).__name__, ex.args))
+
+        if self._is_announce:
             if start_w_broadcast:
                 self.ping('aa')  # ! hard code transaction id
         else:
