@@ -10,9 +10,55 @@ Please use this README file to provide the following documentation for this proj
 
 ### General Description:
 * Connection between peer is not successful. Communication protocol is in progress. We have no success in transfering files.
-
+* Communication Protocol:
+  ```
+  {
+    'headers': 
+    [
+      {
+        'type': 'print',
+        'body': 
+          {
+            'message': 'Hello World'
+          }
+      },
+      {
+        'type': 'input',
+        'body': 
+          {
+            'message': 'Enter Hello World',
+            'res-key': 'Hello Response',
+            'res-type': 'string'
+          }
+      },
+      {
+        'type': 'ignore'
+      },
+      {
+        'type': 'bittorrent',
+        'body': self.message.choke
+      },
+      {
+        'type': 'close'
+      }
+    ]
+  }
+  ```
 ### How To Run:
-* Clear and specific instructions about how to run your project. If your project does not run or contains errors, you'll get a 0 in the project no matter how much work you put on it. So, test your code properly and make sure that it runs without errors.
+* Running on local machine:
+
+  1. In terminal: `py peer.py`
+  2. All the variable needed to change is available in terminal
+  3. For the **1st** seeder, press `ENTER` for all inputs
+  4. For the following peer:
+
+      a. When prompted `Enter role:`, input `seeder` or `peer` or `leecher`
+
+      b. When prompted `Enter server_port:`, input port **lesser** than 5000, preferrably less by 1 for each peer started.
+
+      c. When prompted `DHT_PORT:`, input port **larger** than 12001, preferrably more by 1 for each peer started.
+
+      d. When prompted `Start broadcast:`, input `True` for peer and leecher, `False` for seeder.
 ### Challenges:
 * Works have overlapped and caused confusion.
 
