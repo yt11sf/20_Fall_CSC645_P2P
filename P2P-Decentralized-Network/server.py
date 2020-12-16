@@ -19,7 +19,7 @@ class Server(object):
     TORRENT_PATH = 'age.torrent'
     ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in server.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
 
-    def __init__(self,  peer_id, torrent, message, server_ip_address="127.0.0.1", server_port=12000):
+    def __init__(self,  peer_id, torrent, message, server_ip_address="127.0.0.1", server_port=4999):
         """
         Class constructor
         :param server_ip_address: by default localhost. Note that '0.0.0.0' takes LAN ip address.
@@ -89,6 +89,7 @@ class Server(object):
                 with self.lock:
                     print(self.ERROR_TEMPLATE.format(
                         "_accept_clients()", type(ex).__name__, ex.args))
+                    print('\033[1m\033[91m', self.server_port, '\033[0m')
                     print("The threads")
                 self.serversocket.close()
 
@@ -119,6 +120,7 @@ class Server(object):
         :param clientsocket:
         :return:
         """
+        print('server connection established')
         handshake = self._receive(clientsocket)
         # {'info_hash', 'peer_id','pstr', 'pstrlen'}
         info_hash = handshake['info_hash']

@@ -10,7 +10,7 @@ import uuid
 
 
 class Peer:
-    SERVER_PORT = 4998
+    SERVER_PORT = 5000
     CLIENT_MIN_PORT_RANGE = 5001
     CLIENT_MAX_PORT_RANGE = 5010
 
@@ -46,7 +46,7 @@ class Peer:
             message=self.message,
             server_ip_address=server_ip_address,
             server_port=self.SERVER_PORT)
-        self.tracker = self.run_tracker(True)
+        self.tracker = None
         #Server.__init__(self, self.id, self.torrent, server_ip_address, self.SERVER_PORT)
 
     def get_DHT(self):
@@ -78,7 +78,6 @@ class Peer:
                 while not self.DHT:
                     self.DHT = self.tracker.get_DHT()
                     time.sleep(.5)  # optional
-                    # print("Tracker running.....")
                 print("Tracker running.....")
         except Exception as ex:
             print(self.ERROR_TEMPLATE.format(
@@ -138,12 +137,14 @@ class Peer:
 if __name__ == '__main__':
     role = input('Enter role: ') or 'peer'  # ! testing
     server_ip_address = input('Enter peer ip: ') or '127.0.0.1'  # ! testing
+    announce = True if input('Start broadcast: ') == 'True' else False
     # testing
     peer = Peer(role=role, server_ip_address=server_ip_address)
 
     # testing #seeder for server. peer for leecher
     print("Peer: " + str(peer.id) + " running its server: ")
     peer.run_server()
+    peer.run_tracker(announce)
     # print("Peer: " + str(peer.id) + " running its clients: ")
     # Two ways of testing this:
     #  Locally (same machine):
@@ -153,8 +154,8 @@ if __name__ == '__main__':
     #      1. Run two peers in different machines.
     #      2. Run a peer in this machine.
 
-    # if peer.role == peer.LEECHER or peer.role == peer.PEER:
-    if peer.role == peer.SEEDER:
+    if peer.role == peer.LEECHER or peer.role == peer.PEER:
+        # if peer.role == peer.SEEDER:
         # this list will be sent by the tracker in your P2P assignment
         peer_ips = peer.get_DHT()
         peer.connect(peer_ips)

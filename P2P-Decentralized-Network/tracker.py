@@ -1,5 +1,6 @@
 from server import Server
 
+from collections import OrderedDict
 import socket
 import threading
 import bencodepy
@@ -9,16 +10,18 @@ class Tracker:
     DHT_PORT = 6000
     SELF_PORT = 6000  # Change port for other peers
 
+    ERROR_TEMPLATE = "\033[1m\033[91mEXCEPTION in tracker.py {0}:\033[0m {1} occurred.\nArguments:\n{2!r}"
+
     def __init__(self, server, torrent, announce):
         self.server = server
         self.torrent = torrent
         self.announce = announce
-        if not self.announce:
-            self.DHT_PORT = 12006
+        if self.announce:
+            self.SELF_PORT = 12006
         self.torrent_info_hash = self._get_torrent_info_hash()
         self.udp_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         self.udp_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        self.udp_socket.bind(("", self.DHT_PORT))
+        self.udp_socket.bind(("", self.SELF_PORT))
         # will story a list of dictionaries representing entries in the routing table
         # dictionaries stored here are in the following form
         # {'nodeID': '<the node id is a SHA1 hash of the ip_address and port of the server node and a random uuid>',
@@ -83,9 +86,10 @@ class Tracker:
                           data, ip_sender, port_sender)
                     if not self.announce:
                         self.process_query(data, ip_sender, port_sender)
-        except:
-            print("Error listening at DHT port")
-            
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "broadcast_listerner()", type(ex).__name__, ex.args))
+
     def process_query(self, data, ip_sender, port_sender):
         """
         TODO: process an incoming query from a node
@@ -102,10 +106,10 @@ class Tracker:
                 # Harcode ip address to be localhost for testing
                 # self._routing_table = [str(ip_sender) + "/" + str(port_sender)]
                 self._routing_table = [
-                    "127.0.0.1" + "/" + str(self.server.port)]
+                    "127.0.0.1" + "/" + str(self.server.server_port)]
                 print("Hashed info data matches!...")
                 exit(1)
- 
+
     def get_DHT(self):
         return self._routing_table
 
@@ -159,7 +163,7 @@ class Tracker:
         :return: VOID
         """
         if self.announce:
-            print("Broadcasting to DHT Port...")
+            print("Broadcasting to DHT Port: ", self.DHT_PORT)
             self.ping("aa", "q", "ping")
         else:
             threading.Thread(target=self.broadcast_listerner).start()

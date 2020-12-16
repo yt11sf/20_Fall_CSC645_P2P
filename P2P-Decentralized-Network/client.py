@@ -29,6 +29,7 @@ class Client(object):
         self.message = message
 
     def set_info(self):
+        print('client connection established')
         # sending handshake
         self._send(self.message.handshake)
         data = self._receive()
@@ -36,7 +37,9 @@ class Client(object):
         self.handle_response(data)
         # sending interested
         self._send(self.message.interested)
-
+        data = self._receive()
+        # server unchoke
+        self.handle_response(data)
         print('Your client info is:')
         print("Client ID: " + str(self.client_id))
 
