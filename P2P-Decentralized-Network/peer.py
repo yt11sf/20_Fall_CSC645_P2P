@@ -27,7 +27,7 @@ class Peer:
 
     # Seeder, announce=F, role=seeder, port=5000
     # Leecher, announce=T, role=peer, port=4998
-    def __init__(self, role=PEER, server_ip_address='127.0.0.1'):
+    def __init__(self, role=PEER, server_ip_address='127.0.0.1', server_port=5000, DHT_PORT=12001):
         """
         Class constructor
         :param server_ip_address: used when need to use the ip assigned by LAN
@@ -39,6 +39,8 @@ class Peer:
         self.DHT = None
         self.torrent = Torrent(self.TORRENT_PATH)
         self.message = Message(self.id, self.torrent.create_info_hash())
+        self.SERVER_PORT = server_port
+        self.DHT_PORT = DHT_PORT
         # peer_id, torrent, message, server_ip_address="127.0.0.1", server_port=12000
         self.server = Server(
             peer_id=self.id,
@@ -73,12 +75,20 @@ class Peer:
         """
         try:
             if self.server:
-                self.tracker = Tracker(self.server, self.torrent, announce)
+                self.tracker = Tracker(
+                    self.server, self.torrent, announce=announce, DHT_PORT=self.DHT_PORT)
                 Thread(target=self.tracker.run, daemon=False).start()
                 while not self.DHT:
-                    self.DHT = self.tracker.get_DHT()
+                    dht = self.tracker.get_DHT()
                     time.sleep(.5)  # optional
                 print("Tracker running.....")
+                # {info_hash: [(response_time, (ip_address, port))]}
+                info_hash = self.torrent.create_info_hash()
+                peers_ip_port = [dht[info_hash][x][1]
+                                 for x in range(len(dht[info_hash])-1)] or [('127.0.0.1', 4999)]
+                peers_ip = '/'.join(str(x) for x in peers_ip_port)
+                if self.role == self.LEECHER or self.role == self.PEER:
+                    peer.connect(peers_ip)
         except Exception as ex:
             print(self.ERROR_TEMPLATE.format(
                 "run_tracker()", type(ex).__name__, ex.args))
@@ -135,11 +145,12 @@ class Peer:
 
 
 if __name__ == '__main__':
-    role = input('Enter role: ') or 'peer'  # ! testing
-    server_ip_address = input('Enter peer ip: ') or '127.0.0.1'  # ! testing
+    role = input('Enter role: ') or 'seeder'  # ! testing
+    server_port = int(input('Enter server_port: ') or 5000)   # ! testing
+    DHT_PORT = int(input("DHT_PORT: ") or 12001)
     announce = True if input('Start broadcast: ') == 'True' else False
     # testing
-    peer = Peer(role=role, server_ip_address=server_ip_address)
+    peer = Peer(role=role, server_port=server_port, DHT_PORT=DHT_PORT)
 
     # testing #seeder for server. peer for leecher
     print("Peer: " + str(peer.id) + " running its server: ")
@@ -153,12 +164,6 @@ if __name__ == '__main__':
     #  Using different machines
     #      1. Run two peers in different machines.
     #      2. Run a peer in this machine.
-
-    if peer.role == peer.LEECHER or peer.role == peer.PEER:
-        # if peer.role == peer.SEEDER:
-        # this list will be sent by the tracker in your P2P assignment
-        peer_ips = peer.get_DHT()
-        peer.connect(peer_ips)
 
     """ Sample output running this in the same machine """
     # Peer: 6d223864-9cd7-4327-ad02-7856d636af66 running its server:

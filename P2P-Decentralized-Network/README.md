@@ -9,7 +9,7 @@ Please use this README file to provide the following documentation for this proj
 4. Peter Hu
 
 ### General Description:
-* Connection between peer is established. Communication protocol is in progress. We have no success in transfering files.
+* Connection between peer is not successful. Communication protocol is in progress. We have no success in transfering files.
 
 ### How To Run:
 * Clear and specific instructions about how to run your project. If your project does not run or contains errors, you'll get a 0 in the project no matter how much work you put on it. So, test your code properly and make sure that it runs without errors.
