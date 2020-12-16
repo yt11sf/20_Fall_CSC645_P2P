@@ -10,6 +10,40 @@ Please use this README file to provide the following documentation for this proj
 
 ### General Description:
 * Connection between peer is established. Communication protocol is in progress. We have no success in transfering files.
+* Communication Protocol:
+  ```
+  {
+    'headers': 
+    [
+      {
+        'type': 'print',
+        'body': 
+          {
+            'message': 'Hello World'
+          }
+      },
+      {
+        'type': 'input',
+        'body': 
+          {
+            'message': 'Enter Hello World',
+            'res-key': 'Hello Response',
+            'res-type': 'string'
+          }
+      },
+      {
+        'type': 'ignore'
+      },
+      {
+        'type': 'bittorrent',
+        'body': self.message.choke
+      },
+      {
+        'type': 'close'
+      }
+    ]
+  }
+  ```
 
 ### How To Run:
 * Clear and specific instructions about how to run your project. If your project does not run or contains errors, you'll get a 0 in the project no matter how much work you put on it. So, test your code properly and make sure that it runs without errors.
