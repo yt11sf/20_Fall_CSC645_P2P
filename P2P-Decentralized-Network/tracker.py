@@ -70,8 +70,9 @@ class Tracker:
             new_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             message = self.encode(message)
             new_socket.sendto(message, (ip, port))
-        except:
-            print("error")
+        except Exception as ex:
+            print(self.ERROR_TEMPLATE.format(
+                "send_udp_message()", type(ex).__name__, ex.args))
 
     def broadcast_listerner(self):
         try:
@@ -112,8 +113,8 @@ class Tracker:
                 self._routing_table = [
                     "127.0.0.1" + "/" + str(self.server.server_port)]
                 print("Hashed info data matches!...")
-                self.send_udp_message(self._routing_table, ip_sender, port_sender)
-
+                self.send_udp_message(
+                    self._routing_table, ip_sender, port_sender)
 
     def get_DHT(self):
         return self._routing_table

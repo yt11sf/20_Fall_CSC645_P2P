@@ -27,12 +27,13 @@ class Peer:
 
     # Seeder, announce=F, role=seeder, port=5000
     # Leecher, announce=T, role=peer, port=4998
-    def __init__(self, role=PEER, server_ip_address='127.0.0.1'):
+    def __init__(self, role=PEER, server_ip_address='127.0.0.1', server_port=5000):
         """
         Class constructor
         :param server_ip_address: used when need to use the ip assigned by LAN
         """
         self.server_ip_address = server_ip_address
+        self.SERVER_PORT = server_port
         self.id = uuid.uuid4()  # creates unique id for the peer
         self.role = role
         # Commented out from this lab b/c not needed
@@ -100,7 +101,8 @@ class Peer:
         :return: VOID
         """
         print('Trying ', peer_ip_address, '/', client_port_to_bind)
-        client = Client(peer_id=self.id, torrent=self.torrent, message=self.message)
+        client = Client(peer_id=self.id, torrent=self.torrent,
+                        message=self.message)
         try:
             client.bind('0.0.0.0', client_port_to_bind)
             # must thread the client too, otherwise it will block the main thread
@@ -138,11 +140,11 @@ class Peer:
 
 
 if __name__ == '__main__':
-    role = input('Enter role: ') or 'peer'  # ! testing
-    server_ip_address = input('Enter peer ip: ') or '127.0.0.1'  # ! testing
+    role = input('Enter role: ') or 'seeder'  # ! testing
+    server_port = input('Enter server port: ') or 5000  # ! testing
     announce = True if input('Start broadcast: ') == 'True' else False
     # testing
-    peer = Peer(role=role, server_ip_address=server_ip_address)
+    peer = Peer(role=role, server_port=server_port)
 
     # testing #seeder for server. peer for leecher
     print("Peer: " + str(peer.id) + " running it s server: ")
