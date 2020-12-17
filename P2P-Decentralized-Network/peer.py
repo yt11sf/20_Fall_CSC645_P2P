@@ -10,7 +10,7 @@ import uuid
 
 
 class Peer:
-    SERVER_PORT = 5000
+    SERVER_PORT = 4998
     CLIENT_MIN_PORT_RANGE = 5001
     CLIENT_MAX_PORT_RANGE = 5010
 
