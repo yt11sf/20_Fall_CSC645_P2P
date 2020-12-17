@@ -6,7 +6,7 @@ Please use this README file to provide the following documentation for this proj
 1. Yee Jian Tan 920115752
 2. Kevin Nunura 920347620
 3. Brad Peraza 916768260
-4. Peter Hu 
+4. Peter Hu 917973828
 
 ### General Description:
 * Connection between peer is not successful. Communication protocol is in progress. We have no success in transfering files.
