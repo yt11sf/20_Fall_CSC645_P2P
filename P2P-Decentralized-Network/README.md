@@ -4,12 +4,14 @@ Please use this README file to provide the following documentation for this proj
 
 ### Team Member:
 1. Yee Jian Tan 920115752
-2. Kevin Nunura
-3. Brad Peraza
-4. Peter Hu
+2. Kevin Nunura 920347620
+3. Brad Peraza 916768260
+4. Peter Hu 917973828
 
 ### General Description:
-* Connection between peer is established. Communication protocol is in progress. We have no success in transfering files.
+* Handshake is established between peer.
+* Communication protocol is in progress. 
+* We have no success in transferring files.
 * Communication Protocol:
   ```
   {
@@ -46,11 +48,29 @@ Please use this README file to provide the following documentation for this proj
   ```
 
 ### How To Run:
-* Clear and specific instructions about how to run your project. If your project does not run or contains errors, you'll get a 0 in the project no matter how much work you put on it. So, test your code properly and make sure that it runs without errors.
+1. In terminal, cd in to `P2P-Decentralized-Network`
+2. In terminal, make sure the machine installed according to the requirements.txt
+3. In `peer.py`, change the `SERVER_PORT` to 5000
+4. In terminal, run `py peer.py`
+5. In terminal, when prompted `Enter role: ` input `seeder`
+6. In terminal, when prompted `Enter peer ip: ` just press `ENTER`
+7. In terminal, when prompted `Start broadcast ` input `False`
+8. In `peer.py`, change the `SERVER_PORT` to 4998
+9. In 2nd terminal, run `py peer.py`
+10. In 2nd terminal, when prompted `Enter role: ` input `peer`
+11. In 2nd terminal, when prompted `Enter peer ip: ` just press `ENTER`
+12. In 2nd terminal, when prompted `Start broadcast ` input `True`
 ### Challenges:
 * Works have overlapped and caused confusion.
-
-
+* Git is a nightmare for version controlling, and has forced us to abort many of our committs.
+* One of our team members (Miguel) dropped the course unannounced mid project progress.
+* One of our team members (YeeJian) was in a different time zone with a 12 hours difference which made setting up team
+meets very challenging.
+* We lost communication with Peter Hu on parts of the project.
+* Everybody had problem understanding the tracker.py file.
+* All team members are beginners with Python.
+* Final labs prevented us from starting project sooner.
+ 
 ## Note that failure to provide the above docs will result in a 30% deduction in your final grade for this project. 
 
 # Project Guidelines 
@@ -73,7 +93,9 @@ In order to show the progress of the pieces your peer is uploading or downloadin
 ### Install with PIP
 
 ```python 
-pip3 install htpbs
+pip3 install bencode.py
+pip3 install torrent-parser
+pip3 install bitarray
 ```
 
 # Grading Rubric: 
