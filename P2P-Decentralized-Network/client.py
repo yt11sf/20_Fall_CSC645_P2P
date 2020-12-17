@@ -45,8 +45,7 @@ class Client(object):
         data = self._receive()
         # server unchoke
         self.handle_response(data)
-        print('Your client info is:')
-        print("Client ID: " + str(self.client_id))
+        print('Client handshake is done\nProceed to bitfield request')
 
     def connect(self, host="127.0.0.1", port=12005):
         """

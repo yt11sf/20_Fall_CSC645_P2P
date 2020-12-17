@@ -123,7 +123,7 @@ class Server(object):
         print('server connection established')
         handshake = self._receive(clientsocket)
         # {'info_hash', 'peer_id','pstr', 'pstrlen'}
-        print(handshake)
+        #print(handshake)
         info_hash = handshake['info_hash']
         peer_id = handshake['peer_id']
         # info hash is different
@@ -140,6 +140,7 @@ class Server(object):
         # info hash is valid
         self._send(clientsocket, {'headers': [{'type': 'ignore'}]})
         interested = self._receive(clientsocket)
+        #print(interested)
         # interested
         if interested['id'] == 2:
             # too many parallel connection
@@ -153,8 +154,12 @@ class Server(object):
                 ]})
                 return -1
             else:
-                self._send(clientsocket, self.message.unchoke)
-                self._receive(clientsocket)
+                self._send(clientsocket, {'headers':[
+                    {
+                        'type': 'bittorrent',
+                        'body': self.message.unchoke
+                    }]})
+                print(self._receive(clientsocket))
                 return peer_id
         # not interested
         elif interested['id'] == 3:
