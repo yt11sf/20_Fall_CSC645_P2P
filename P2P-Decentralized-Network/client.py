@@ -28,6 +28,11 @@ class Client(object):
             self.clientSocket, self.peer_id, self.torrent, True, True)
         self.message = message
 
+    def bind(self, client_ip, client_port):
+        # self.client_ip = client_ip
+        # self.client_port = client_port
+        self.clientSocket.bind((client_ip, client_port))
+
     def set_info(self):
         print('client connection established')
         # sending handshake
@@ -202,7 +207,7 @@ class Client(object):
         :return:
         """
         data = pickle.dumps(data)  # serialized data
-        self.clientSocket._send(data)
+        self.clientSocket.send(data)
 
     def _receive(self, MAX_BUFFER_SIZE=4090):
         """

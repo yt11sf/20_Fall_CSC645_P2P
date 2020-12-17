@@ -9,7 +9,7 @@ class Downloader:
         self.peer_id = peer_id
         self.torrent = torrent
         self.uploader_id = -1  # not know until the downloader runs.
-        self.info_hash = self.torrent.info_hash()
+        self.info_hash = self.torrent.create_info_hash()
         self.alive = keep_alive
         self.interested = interested
         self.file_manager = FileManager(self.torrent, self.peer_id)

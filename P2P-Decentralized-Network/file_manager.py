@@ -24,7 +24,7 @@ class FileManager:
         self.file_size = self.torrent.file_length()
         self.piece_size = self.torrent.piece_size()
         self.block_size = self.torrent.block_size()
-        self.hash_info = self.torrent.info_hash()
+        self.hash_info = self.torrent.create_info_hash()
 
     def create_tmp_file(self):
         """

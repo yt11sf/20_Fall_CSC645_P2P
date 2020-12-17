@@ -86,6 +86,10 @@ class Tracker:
                           data, ip_sender, port_sender)
                     if not self.announce:
                         self.process_query(data, ip_sender, port_sender)
+                    else:
+                        self._routing_table = data
+                    exit(1)
+
         except Exception as ex:
             print(self.ERROR_TEMPLATE.format(
                 "broadcast_listerner()", type(ex).__name__, ex.args))
@@ -108,7 +112,8 @@ class Tracker:
                 self._routing_table = [
                     "127.0.0.1" + "/" + str(self.server.server_port)]
                 print("Hashed info data matches!...")
-                exit(1)
+                self.send_udp_message(self._routing_table, ip_sender, port_sender)
+
 
     def get_DHT(self):
         return self._routing_table
@@ -165,5 +170,6 @@ class Tracker:
         if self.announce:
             print("Broadcasting to DHT Port: ", self.DHT_PORT)
             self.ping("aa", "q", "ping")
+            self.broadcast_listerner()
         else:
             threading.Thread(target=self.broadcast_listerner).start()

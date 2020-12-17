@@ -10,7 +10,7 @@ import uuid
 
 
 class Peer:
-    SERVER_PORT = 5000
+    SERVER_PORT = 4998
     CLIENT_MIN_PORT_RANGE = 5001
     CLIENT_MAX_PORT_RANGE = 5010
 
@@ -49,6 +49,9 @@ class Peer:
         self.tracker = None
         #Server.__init__(self, self.id, self.torrent, server_ip_address, self.SERVER_PORT)
 
+    def MOD_SERVER_PORT(self, value):
+        self.SERVER_PORT = str(value)
+
     def get_DHT(self):
         return self.DHT
 
@@ -78,7 +81,7 @@ class Peer:
                 while not self.DHT:
                     self.DHT = self.tracker.get_DHT()
                     time.sleep(.5)  # optional
-                print("Tracker running.....")
+                print("Tracker running and DHT tables created.....")
         except Exception as ex:
             print(self.ERROR_TEMPLATE.format(
                 "run_tracker()", type(ex).__name__, ex.args))
@@ -97,7 +100,7 @@ class Peer:
         :return: VOID
         """
         print('Trying ', peer_ip_address, '/', client_port_to_bind)
-        client = Client(id=self.id, message=self.message)
+        client = Client(peer_id=self.id, torrent=self.torrent, message=self.message)
         try:
             client.bind('0.0.0.0', client_port_to_bind)
             # must thread the client too, otherwise it will block the main thread
@@ -128,8 +131,8 @@ class Peer:
             if client_port > self.CLIENT_MAX_PORT_RANGE:
                 print("Connected max Peer ports...")
                 break
-            if '/' in peer_ip:
-                peer_ip, peer_port = peer_ip.split('/')
+            if '/' in ip_address:
+                peer_ip, peer_port = ip_address.split('/')
             if self._connect_to_peer(client_port, peer_ip, int(peer_port)):
                 client_port += 1
 
@@ -142,34 +145,12 @@ if __name__ == '__main__':
     peer = Peer(role=role, server_ip_address=server_ip_address)
 
     # testing #seeder for server. peer for leecher
-    print("Peer: " + str(peer.id) + " running its server: ")
+    print("Peer: " + str(peer.id) + " running it s server: ")
     peer.run_server()
     peer.run_tracker(announce)
-    # print("Peer: " + str(peer.id) + " running its clients: ")
-    # Two ways of testing this:
-    #  Locally (same machine):
-    #      1. Run two peers in the same machine using different ports. Comment out the next three lines (only servers run)
-    #      2. Then run a third peer, executing the next two lines of code.
-    #  Using different machines
-    #      1. Run two peers in different machines.
-    #      2. Run a peer in this machine.
 
-    if peer.role == peer.LEECHER or peer.role == peer.PEER:
-        # if peer.role == peer.SEEDER:
+    # if peer.role == peer.LEECHER or peer.role == peer.PEER:
+    if peer.role == peer.SEEDER:
         # this list will be sent by the tracker in your P2P assignment
         peer_ips = peer.get_DHT()
         peer.connect(peer_ips)
-
-    """ Sample output running this in the same machine """
-    # Peer: 6d223864-9cd7-4327-ad02-7856d636af66 running its server:
-    # Listening for new peers at 127.0.0.1/5000
-    # Peer: 6d223864-9cd7-4327-ad02-7856d636af66 running its clients:
-    # Client id 5001 connected to peer 127.0.0.1/7001
-    # Client id 5002 connected to peer 127.0.0.1/7000
-
-    """ Sample output running one peer in this machibe in the other two in different machines """
-    # Peer: 6f4e024e9-0265-47ba-a525-1c880a7a9a5d running its server:
-    # Listening for new peers at 10.0.0.248/5000
-    # Peer: f4e024e9-0265-47ba-a525-1c880a7a9a5d running its clients:
-    # Client id 5001 connected to peer 10.0.0.251/5000
-    # Client id 5002 connected to peer 127.0.0.242/5000

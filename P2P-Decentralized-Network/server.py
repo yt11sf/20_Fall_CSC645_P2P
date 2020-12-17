@@ -102,7 +102,7 @@ class Server(object):
         :param address:
         :return: a client handler object.
         """
-        peer_id = self.set_client_info(self, clientsocket)
+        peer_id = self.set_client_info(clientsocket)
         if peer_id == -1:
             with self.lock:
                 print(self.ERROR_TEMPLATE.format(
@@ -123,6 +123,7 @@ class Server(object):
         print('server connection established')
         handshake = self._receive(clientsocket)
         # {'info_hash', 'peer_id','pstr', 'pstrlen'}
+        print(handshake)
         info_hash = handshake['info_hash']
         peer_id = handshake['peer_id']
         # info hash is different
